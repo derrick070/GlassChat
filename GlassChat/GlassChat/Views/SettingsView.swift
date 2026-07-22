@@ -26,6 +26,9 @@ struct SettingsView: View {
                         }
                     }
                 LabeledContent("Connected", value: "\(transport.connectedPeers.count)")
+                Text("When visibility is off, GlassChat stops advertising and browsing. Existing chats stay on device.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -40,7 +43,7 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             name = chatService.displayName
-            visible = transport.isRunning
+            visible = LocalIdentity.isNearbyVisible
         }
         .onDisappear(perform: saveName)
     }

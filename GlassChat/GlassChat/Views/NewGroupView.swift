@@ -3,8 +3,6 @@ import SwiftUI
 struct NewGroupView: View {
     @Environment(ChatService.self) private var chatService
     @Environment(MultipeerTransport.self) private var transport
-    @Environment(\.dismiss) private var dismiss
-
     var onCreated: (Chat) -> Void
 
     @State private var name = ""
@@ -73,7 +71,6 @@ struct NewGroupView: View {
         do {
             let chat = try chatService.createGroup(name: name, members: selectedPeers)
             onCreated(chat)
-            dismiss()
         } catch ChatServiceError.groupTooLarge {
             errorMessage = "Groups can have at most 7 other members."
         } catch ChatServiceError.invalidGroupName {

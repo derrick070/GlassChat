@@ -20,7 +20,6 @@
 		1A543CE3FD660BA5755D3421 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E5A8E1A3B633010472E2F8 /* Message.swift */; };
 		338C799300726E546912343F /* Peer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996882153DD6BF0C90DE1C9 /* Peer.swift */; };
 		889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACC8879F4EAD311FA67743 /* ChatService.swift */; };
-		3F520B17AB0C9739AD71407C /* OutboxProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C645E2D9C58A371CA1FF211A /* OutboxProcessor.swift */; };
 		FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A793029230D8795C497A4D3 /* LocalIdentity.swift */; };
 		E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */; };
 		F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238AB9067C440029CD0E6E67 /* TransportEvent.swift */; };
@@ -58,7 +57,6 @@
 		06E5A8E1A3B633010472E2F8 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		5996882153DD6BF0C90DE1C9 /* Peer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Peer.swift; sourceTree = "<group>"; };
 		41ACC8879F4EAD311FA67743 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
-		C645E2D9C58A371CA1FF211A /* OutboxProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboxProcessor.swift; sourceTree = "<group>"; };
 		3A793029230D8795C497A4D3 /* LocalIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalIdentity.swift; sourceTree = "<group>"; };
 		F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransport.swift; sourceTree = "<group>"; };
 		238AB9067C440029CD0E6E67 /* TransportEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportEvent.swift; sourceTree = "<group>"; };
@@ -145,7 +143,6 @@
 			isa = PBXGroup;
 			children = (
 				41ACC8879F4EAD311FA67743 /* ChatService.swift */,
-				C645E2D9C58A371CA1FF211A /* OutboxProcessor.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -231,13 +228,8 @@
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					6439CF22188FA14BBD363342 = {
-						CreatedOnToolsVersion = 16.0;
-					};
-					384AED6A9A6E51F8FA09FB01 = {
-						CreatedOnToolsVersion = 16.0;
-						TestTargetID = 6439CF22188FA14BBD363342;
-					};
+					6439CF22188FA14BBD363342 = { CreatedOnToolsVersion = 16.0; };
+					384AED6A9A6E51F8FA09FB01 = { CreatedOnToolsVersion = 16.0; TestTargetID = 6439CF22188FA14BBD363342; };
 				};
 			};
 			buildConfigurationList = CB7CBE0C3B42E7D081FECC31 /* Build configuration list for PBXProject "GlassChat" */;
@@ -289,7 +281,6 @@
 				1A543CE3FD660BA5755D3421 /* Message.swift in Sources */,
 				338C799300726E546912343F /* Peer.swift in Sources */,
 				889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */,
-				3F520B17AB0C9739AD71407C /* OutboxProcessor.swift in Sources */,
 				FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */,
 				E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */,
 				F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */,
@@ -327,12 +318,11 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_TESTABILITY = YES;
-				GCC_DYNAMIC_NO_PIC = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -346,7 +336,6 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_TESTABILITY = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = iphoneos;
@@ -361,7 +350,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlassChat/Info.plist;
@@ -376,7 +364,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -388,7 +375,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlassChat/Info.plist;
@@ -403,7 +389,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -420,7 +405,6 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassChat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GlassChat";
 			};
@@ -437,7 +421,6 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassChat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GlassChat";
 			};

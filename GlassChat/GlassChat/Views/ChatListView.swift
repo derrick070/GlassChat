@@ -1,6 +1,13 @@
 import SwiftUI
 import SwiftData
 
+private enum AppRoute: Hashable {
+    case chat(UUID)
+    case peerBrowser
+    case newGroup
+    case settings
+}
+
 struct ChatListView: View {
     @Environment(ChatService.self) private var chatService
     @Environment(MultipeerTransport.self) private var transport
@@ -22,25 +29,21 @@ struct ChatListView: View {
             .navigationTitle("GlassChat")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink {
-                        SettingsView()
+                    Button {
+                        path.append(AppRoute.settings)
                     } label: {
                         Image(systemName: "gearshape")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        NavigationLink {
-                            PeerBrowserView { chat in
-                                path.append(chat.id)
-                            }
+                        Button {
+                            path.append(AppRoute.peerBrowser)
                         } label: {
                             Label("New Chat", systemImage: "person")
                         }
-                        NavigationLink {
-                            NewGroupView { chat in
-                                path.append(chat.id)
-                            }
+                        Button {
+                            path.append(AppRoute.newGroup)
                         } label: {
                             Label("New Group", systemImage: "person.3")
                         }
@@ -49,11 +52,24 @@ struct ChatListView: View {
                     }
                 }
             }
-            .navigationDestination(for: UUID.self) { chatID in
-                if let chat = chats.first(where: { $0.id == chatID }) {
-                    ChatView(chat: chat)
-                } else {
-                    ContentUnavailableView("Chat unavailable", systemImage: "bubble.left.and.bubble.right")
+            .navigationDestination(for: AppRoute.self) { route in
+                switch route {
+                case .chat(let chatID):
+                    if let chat = chats.first(where: { $0.id == chatID }) {
+                        ChatView(chat: chat)
+                    } else {
+                        ContentUnavailableView("Chat unavailable", systemImage: "bubble.left.and.bubble.right")
+                    }
+                case .peerBrowser:
+                    PeerBrowserView { chat in
+                        path.append(AppRoute.chat(chat.id))
+                    }
+                case .newGroup:
+                    NewGroupView { chat in
+                        path.append(AppRoute.chat(chat.id))
+                    }
+                case .settings:
+                    SettingsView()
                 }
             }
             .background(AtmosphereBackground())
@@ -62,7 +78,7 @@ struct ChatListView: View {
             nameSheet
         }
         .onAppear {
-            if UserDefaults.standard.string(forKey: "glasschat.displayName") == nil {
+            if !LocalIdentity.hasChosenDisplayName {
                 draftName = chatService.displayName
                 showNameSheet = true
             }
@@ -72,7 +88,7 @@ struct ChatListView: View {
     private var chatList: some View {
         List {
             ForEach(chats, id: \.id) { chat in
-                NavigationLink(value: chat.id) {
+                NavigationLink(value: AppRoute.chat(chat.id)) {
                     chatRow(chat)
                 }
                 .listRowBackground(
@@ -134,10 +150,8 @@ struct ChatListView: View {
         } description: {
             Text("Start a 1:1 or group chat with people nearby. Everything stays on your devices.")
         } actions: {
-            NavigationLink {
-                PeerBrowserView { chat in
-                    path.append(chat.id)
-                }
+            Button {
+                path.append(AppRoute.peerBrowser)
             } label: {
                 Text("Find nearby peers")
                     .fontWeight(.semibold)

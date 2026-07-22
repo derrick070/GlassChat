@@ -35,9 +35,6 @@ targets:
         NSBonjourServices:
           - _glass-chat._tcp
           - _glass-chat._udp
-        UIBackgroundModes:
-          - bluetooth-central
-          - bluetooth-peripheral
   GlassChatTests:
     type: bundle.unit-test
     platform: iOS

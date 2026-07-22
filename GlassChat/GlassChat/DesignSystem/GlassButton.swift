@@ -3,6 +3,7 @@ import SwiftUI
 struct GlassButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
+    @ViewBuilder
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
 
@@ -14,12 +15,20 @@ struct GlassButtonStyle: ButtonStyle {
             .background {
                 if reduceTransparency {
                     shape.fill(Color(.secondarySystemBackground))
-                } else if #available(iOS 26.0, *) {
-                    Color.clear
                 } else {
+                    #if compiler(>=6.2)
+                    if #available(iOS 26.0, *) {
+                        Color.clear
+                    } else {
+                        shape
+                            .fill(.ultraThinMaterial)
+                            .overlay(shape.stroke(GlassTheme.accent.opacity(0.35), lineWidth: 1))
+                    }
+                    #else
                     shape
                         .fill(.ultraThinMaterial)
                         .overlay(shape.stroke(GlassTheme.accent.opacity(0.35), lineWidth: 1))
+                    #endif
                 }
             }
             .modifier(GlassChromeIfAvailable(shape: shape, enabled: !reduceTransparency))
@@ -34,11 +43,15 @@ private struct GlassChromeIfAvailable: ViewModifier {
     let enabled: Bool
 
     func body(content: Content) -> some View {
+        #if compiler(>=6.2)
         if enabled, #available(iOS 26.0, *) {
             content.glassEffect(.regular.interactive(), in: shape)
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 

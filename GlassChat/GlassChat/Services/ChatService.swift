@@ -1,25 +1,23 @@
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 
 @Observable
 @MainActor
 final class ChatService {
     private let modelContext: ModelContext
     private let transport: MultipeerTransport
-    private var identity: LocalIdentity
     private var eventTask: Task<Void, Never>?
     private var sequenceStore: [String: Int64] = [:]
+    /// Chat currently on screen — incoming messages here do not bump unread.
+    private(set) var activeChatID: UUID?
 
-    init(modelContext: ModelContext, transport: MultipeerTransport, identity: LocalIdentity) {
+    init(modelContext: ModelContext, transport: MultipeerTransport) {
         self.modelContext = modelContext
         self.transport = transport
-        self.identity = identity
-    }
-
-    func start() {
-        transport.start()
-        eventTask?.cancel()
+        // Subscribe once for the lifetime of the service. AsyncStream is
+        // single-consumer; cancelling the iterator finishes the stream.
         eventTask = Task { [weak self] in
             guard let self else { return }
             for await event in transport.events {
@@ -28,20 +26,40 @@ final class ChatService {
         }
     }
 
+    /// Start advertising/browsing when the user wants to be discoverable.
+    func start() {
+        LocalIdentity.isNearbyVisible = true
+        transport.start()
+    }
+
+    /// Stop nearby discovery without tearing down the event subscription.
     func stop() {
-        eventTask?.cancel()
-        eventTask = nil
+        LocalIdentity.isNearbyVisible = false
         transport.stop()
     }
 
+    func handleScenePhase(_ phase: ScenePhase) {
+        guard phase == .active else { return }
+        if LocalIdentity.isNearbyVisible {
+            transport.start()
+        }
+        flushOutbox()
+    }
+
     func updateDisplayName(_ name: String) {
-        identity.updateDisplayName(name)
         transport.updateDisplayName(name)
     }
 
-    var localUUID: UUID { identity.peerUUID }
-    var displayName: String { identity.displayName }
-    var shortID: String { identity.shortID }
+    func setActiveChat(_ id: UUID?) {
+        activeChatID = id
+        if let id, let chat = fetchChat(id: id) {
+            markChatRead(chat)
+        }
+    }
+
+    var localUUID: UUID { transport.peerUUID }
+    var displayName: String { transport.displayName }
+    var shortID: String { transport.shortID }
 
     // MARK: - Chats
 
@@ -58,7 +76,7 @@ final class ChatService {
             id: chatID,
             kind: .direct,
             name: peer.displayName,
-            memberUUIDs: [identity.peerUUID, peer.uuid].sorted { $0.uuidString < $1.uuidString }
+            memberUUIDs: [transport.peerUUID, peer.uuid].sorted { $0.uuidString < $1.uuidString }
         )
         modelContext.insert(chat)
         try? modelContext.save()
@@ -72,7 +90,7 @@ final class ChatService {
         guard members.count <= 7 else { throw ChatServiceError.groupTooLarge }
 
         var memberUUIDs = Set(members.map(\.uuid))
-        memberUUIDs.insert(identity.peerUUID)
+        memberUUIDs.insert(transport.peerUUID)
         let chat = Chat(
             id: UUID(),
             kind: .group,
@@ -94,7 +112,7 @@ final class ChatService {
         let sequence = nextSequence(for: chat.id)
         let message = Message(
             id: messageID,
-            senderUUID: identity.peerUUID,
+            senderUUID: transport.peerUUID,
             text: trimmed,
             sequence: sequence,
             status: .pending,
@@ -161,10 +179,12 @@ final class ChatService {
         }
     }
 
+    #if DEBUG
     /// Test-only entry point for frame handling without a live transport.
     func testHandle(frame: WireFrame, from sender: UUID) {
         handle(frame: frame, from: sender)
     }
+    #endif
 
     private func handleIncomingMessage(_ frame: WireFrame, from sender: UUID) {
         guard let messageID = frame.messageID,
@@ -199,7 +219,9 @@ final class ChatService {
         )
         chat.messages.append(message)
         chat.lastMessageAt = sentAt
-        chat.unreadCount += 1
+        if activeChatID != chat.id {
+            chat.unreadCount += 1
+        }
         modelContext.insert(message)
         upsertPeer(
             uuid: sender,
@@ -218,7 +240,7 @@ final class ChatService {
             message.ackedBy.append(sender)
         }
         if let chat = message.chat {
-            let needed = chat.memberUUIDs.filter { $0 != identity.peerUUID }
+            let needed = chat.memberUUIDs.filter { $0 != transport.peerUUID }
             let fullyDelivered = needed.allSatisfy { message.ackedBy.contains($0) }
             message.status = fullyDelivered ? .delivered : .sent
         } else {
@@ -239,7 +261,7 @@ final class ChatService {
             : nil
 
         let frame = WireFrame.message(
-            senderUUID: identity.peerUUID,
+            senderUUID: transport.peerUUID,
             messageID: message.id,
             chatID: chat.id,
             text: message.text,
@@ -250,24 +272,28 @@ final class ChatService {
 
         do {
             try transport.send(frame, to: targets)
-            if message.status == .pending {
+            if message.status == .pending || message.status == .failed {
                 message.status = .sent
             }
             try? modelContext.save()
-        } catch {
+        } catch TransportError.noConnectedPeers {
             message.status = .pending
+            try? modelContext.save()
+        } catch {
+            // Encode failures or unexpected transport errors — surface retry UI.
+            message.status = .failed
             try? modelContext.save()
         }
     }
 
     private func sendAck(for messageID: UUID, to peer: UUID) {
-        let frame = WireFrame.ack(senderUUID: identity.peerUUID, ackedMessageID: messageID)
+        let frame = WireFrame.ack(senderUUID: transport.peerUUID, ackedMessageID: messageID)
         try? transport.send(frame, to: [peer])
     }
 
     private func undeliveredTargets(for message: Message, in chat: Chat) -> [UUID] {
         chat.memberUUIDs
-            .filter { $0 != identity.peerUUID }
+            .filter { $0 != transport.peerUUID }
             .filter { !message.ackedBy.contains($0) }
             .filter { transport.isConnected($0) }
     }
@@ -301,7 +327,7 @@ final class ChatService {
             id: chatID,
             kind: .direct,
             name: senderName ?? "Peer",
-            memberUUIDs: [identity.peerUUID, senderUUID].sorted { $0.uuidString < $1.uuidString }
+            memberUUIDs: [transport.peerUUID, senderUUID].sorted { $0.uuidString < $1.uuidString }
         )
         modelContext.insert(chat)
         return chat
@@ -330,7 +356,7 @@ final class ChatService {
 
     private func directChatID(with peerUUID: UUID) -> UUID {
         // Deterministic chat ID from sorted UUID pair so both sides share one thread.
-        let a = identity.peerUUID.uuidString
+        let a = transport.peerUUID.uuidString
         let b = peerUUID.uuidString
         let seed = [a, b].sorted().joined(separator: "|")
         return UUID.deterministic(from: seed)

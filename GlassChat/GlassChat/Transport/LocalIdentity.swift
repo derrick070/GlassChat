@@ -3,13 +3,32 @@ import MultipeerConnectivity
 import Security
 import UIKit
 
-struct LocalIdentity: Sendable {
+struct LocalIdentity {
     let peerUUID: UUID
     var displayName: String
     let mcPeerID: MCPeerID
 
     var shortID: String {
         String(peerUUID.uuidString.prefix(8)).uppercased()
+    }
+
+    enum Keys {
+        static let displayName = "glasschat.displayName"
+        static let peerUUID = "glasschat.peerUUID"
+        static let mcPeerID = "glasschat.mcPeerID"
+        static let nearbyVisible = "glasschat.nearbyVisible"
+    }
+
+    static var isNearbyVisible: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Keys.nearbyVisible) == nil { return true }
+            return UserDefaults.standard.bool(forKey: Keys.nearbyVisible)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.nearbyVisible) }
+    }
+
+    static var hasChosenDisplayName: Bool {
+        UserDefaults.standard.string(forKey: Keys.displayName) != nil
     }
 
     static func loadOrCreate() -> LocalIdentity {
@@ -27,12 +46,6 @@ struct LocalIdentity: Sendable {
         UserDefaults.standard.set(trimmed, forKey: Keys.displayName)
         // MCPeerID displayName is immutable; keep archived ID stable.
         // Browsing UX uses hello frames for the real name.
-    }
-
-    private enum Keys {
-        static let displayName = "glasschat.displayName"
-        static let peerUUID = "glasschat.peerUUID"
-        static let mcPeerID = "glasschat.mcPeerID"
     }
 
     private static func loadOrCreateUUID() -> UUID {

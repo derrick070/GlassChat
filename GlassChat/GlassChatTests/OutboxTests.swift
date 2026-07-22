@@ -11,21 +11,21 @@ final class OutboxTests: XCTestCase {
         )
         let context = ModelContext(container)
         let identity = LocalIdentity.loadOrCreate()
-        let peer = ConnectedPeer(uuid: UUID(), displayName: "Riley")
         let transport = MultipeerTransport(identity: identity)
-        let service = ChatService(modelContext: context, transport: transport, identity: identity)
+        let service = ChatService(modelContext: context, transport: transport)
+        let peer = ConnectedPeer(uuid: UUID(), displayName: "Riley")
         let chat = service.openOrCreateDirectChat(with: peer)
 
         let pending = Message(
-            id: UUID(), senderUUID: identity.peerUUID, text: "a", sequence: 1,
+            id: UUID(), senderUUID: service.localUUID, text: "a", sequence: 1,
             status: .pending, isFromMe: true, chat: chat
         )
         let sent = Message(
-            id: UUID(), senderUUID: identity.peerUUID, text: "b", sequence: 2,
+            id: UUID(), senderUUID: service.localUUID, text: "b", sequence: 2,
             status: .sent, isFromMe: true, chat: chat
         )
         let delivered = Message(
-            id: UUID(), senderUUID: identity.peerUUID, text: "c", sequence: 3,
+            id: UUID(), senderUUID: service.localUUID, text: "c", sequence: 3,
             status: .delivered, isFromMe: true, chat: chat
         )
         context.insert(pending)

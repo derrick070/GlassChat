@@ -76,7 +76,16 @@ final class MultipeerTransport: NSObject {
 
     func updateDisplayName(_ name: String) {
         identity.updateDisplayName(name)
+        // Re-hello so already-connected peers pick up the new name.
+        helloSent.removeAll()
+        for peer in session.connectedPeers {
+            sendHello(to: peer)
+        }
     }
+
+    var displayName: String { identity.displayName }
+    var peerUUID: UUID { identity.peerUUID }
+    var shortID: String { identity.shortID }
 
     private func configureSession() {
         session = MCSession(
@@ -225,6 +234,8 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
             guard shouldInvite(remoteUUID) else { return }
             guard !pendingInvites.contains(peerID),
                   session.connectedPeers.contains(peerID) == false else { return }
+            // MCSession hard ceiling is 8 peers (self + 7 others).
+            guard session.connectedPeers.count < 7 else { return }
             pendingInvites.insert(peerID)
             browser.invitePeer(peerID, to: session, withContext: nil, timeout: 12)
         }

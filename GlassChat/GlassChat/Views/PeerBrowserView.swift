@@ -3,8 +3,6 @@ import SwiftUI
 struct PeerBrowserView: View {
     @Environment(ChatService.self) private var chatService
     @Environment(MultipeerTransport.self) private var transport
-    @Environment(\.dismiss) private var dismiss
-
     var onOpenChat: (Chat) -> Void
 
     var body: some View {
@@ -22,7 +20,6 @@ struct PeerBrowserView: View {
                         Button {
                             let chat = chatService.openOrCreateDirectChat(with: peer)
                             onOpenChat(chat)
-                            dismiss()
                         } label: {
                             HStack {
                                 Circle()
@@ -46,13 +43,20 @@ struct PeerBrowserView: View {
                 Text("Nearby")
             }
 
-            if !transport.discoveredPeerNames.isEmpty {
-                Section("Seen on network") {
-                    ForEach(transport.discoveredPeerNames, id: \.self) { name in
+            Section {
+                let connectedNames = Set(transport.connectedPeers.map(\.displayName))
+                let pending = transport.discoveredPeerNames.filter { !connectedNames.contains($0) }
+                if pending.isEmpty {
+                    Text("Waiting for nearby devices…")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(pending, id: \.self) { name in
                         Text(name)
                             .foregroundStyle(.secondary)
                     }
                 }
+            } header: {
+                Text("Seen on network")
             }
         }
         .scrollContentBackground(.hidden)

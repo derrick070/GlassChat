@@ -4,7 +4,7 @@ import SwiftData
 
 @MainActor
 final class ChatServiceTests: XCTestCase {
-    func testIdempotentMessageInsert() throws {
+    private func makeService() throws -> (ChatService, ModelContext, MultipeerTransport) {
         let container = try ModelContainer(
             for: Peer.self, Chat.self, Message.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
@@ -12,11 +12,15 @@ final class ChatServiceTests: XCTestCase {
         let context = ModelContext(container)
         let identity = LocalIdentity.loadOrCreate()
         let transport = MultipeerTransport(identity: identity)
-        let service = ChatService(modelContext: context, transport: transport, identity: identity)
+        let service = ChatService(modelContext: context, transport: transport)
+        return (service, context, transport)
+    }
 
+    func testIdempotentMessageInsert() throws {
+        let (service, context, _) = try makeService()
         let peerUUID = UUID()
         let chatID = UUID.deterministic(
-            from: [identity.peerUUID.uuidString, peerUUID.uuidString].sorted().joined(separator: "|")
+            from: [service.localUUID.uuidString, peerUUID.uuidString].sorted().joined(separator: "|")
         )
         let messageID = UUID()
         let frame = WireFrame.message(
@@ -28,9 +32,8 @@ final class ChatServiceTests: XCTestCase {
             sequence: 1
         )
 
-        // Simulate two deliveries of the same frame.
-        service.exposeHandle(frame: frame, from: peerUUID)
-        service.exposeHandle(frame: frame, from: peerUUID)
+        service.testHandle(frame: frame, from: peerUUID)
+        service.testHandle(frame: frame, from: peerUUID)
 
         let messages = try context.fetch(FetchDescriptor<Message>())
         XCTAssertEqual(messages.count, 1)
@@ -38,20 +41,12 @@ final class ChatServiceTests: XCTestCase {
     }
 
     func testAckMarksDeliveredForDirectChat() throws {
-        let container = try ModelContainer(
-            for: Peer.self, Chat.self, Message.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let identity = LocalIdentity.loadOrCreate()
-        let transport = MultipeerTransport(identity: identity)
-        let service = ChatService(modelContext: context, transport: transport, identity: identity)
-
+        let (service, context, _) = try makeService()
         let peer = ConnectedPeer(uuid: UUID(), displayName: "Sam")
         let chat = service.openOrCreateDirectChat(with: peer)
         let message = Message(
             id: UUID(),
-            senderUUID: identity.peerUUID,
+            senderUUID: service.localUUID,
             text: "hi",
             sequence: 1,
             status: .sent,
@@ -62,17 +57,31 @@ final class ChatServiceTests: XCTestCase {
         try context.save()
 
         let ack = WireFrame.ack(senderUUID: peer.uuid, ackedMessageID: message.id)
-        service.exposeHandle(frame: ack, from: peer.uuid)
+        service.testHandle(frame: ack, from: peer.uuid)
 
         XCTAssertEqual(message.status, .delivered)
         XCTAssertTrue(message.ackedBy.contains(peer.uuid))
     }
-}
 
-extension ChatService {
-    /// Test seam — production code uses the transport event stream.
-    func exposeHandle(frame: WireFrame, from sender: UUID) {
-        // Mirror private handle via a package-visible helper.
-        testHandle(frame: frame, from: sender)
+    func testActiveChatDoesNotIncrementUnread() throws {
+        let (service, context, _) = try makeService()
+        let peerUUID = UUID()
+        let chatID = UUID.deterministic(
+            from: [service.localUUID.uuidString, peerUUID.uuidString].sorted().joined(separator: "|")
+        )
+        service.setActiveChat(chatID)
+
+        let frame = WireFrame.message(
+            senderUUID: peerUUID,
+            messageID: UUID(),
+            chatID: chatID,
+            text: "while open",
+            sentAt: .now,
+            sequence: 1
+        )
+        service.testHandle(frame: frame, from: peerUUID)
+
+        let chat = try context.fetch(FetchDescriptor<Chat>()).first
+        XCTAssertEqual(chat?.unreadCount, 0)
     }
 }

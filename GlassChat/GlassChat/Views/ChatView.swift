@@ -60,7 +60,12 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .background(AtmosphereBackground())
         .onAppear {
-            chatService.markChatRead(chat)
+            chatService.setActiveChat(chat.id)
+        }
+        .onDisappear {
+            if chatService.activeChatID == chat.id {
+                chatService.setActiveChat(nil)
+            }
         }
     }
 
