@@ -27,6 +27,10 @@ struct GlassChatApp: App {
             RootView(transport: transport, chatService: $chatService)
                 .modelContainer(modelContainer)
                 .environment(transport)
+                .environment(NotificationService.shared)
+                .task {
+                    NotificationService.shared.configure()
+                }
         }
         .onChange(of: scenePhase) { _, phase in
             chatService?.handleScenePhase(phase)

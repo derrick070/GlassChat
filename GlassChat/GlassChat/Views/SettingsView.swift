@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Environment(ChatService.self) private var chatService
@@ -6,6 +7,7 @@ struct SettingsView: View {
 
     @State private var name: String = ""
     @State private var visible = true
+    @State private var keepAwake = false
 
     var body: some View {
         Form {
@@ -31,6 +33,16 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Connection") {
+                Toggle("Keep screen awake", isOn: $keepAwake)
+                    .onChange(of: keepAwake) { _, isOn in
+                        LocalIdentity.keepScreenAwake = isOn
+                    }
+                Text("iOS suspends Multipeer when GlassChat is not on screen. Keeping the screen awake (and the app open) is the most reliable way to stay connected. Background keep-alive only delays disconnects for a short time.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 Text("GlassChat works fully offline over Bluetooth and local Wi‑Fi. No accounts, no servers, no internet.")
                     .font(.footnote)
@@ -44,6 +56,8 @@ struct SettingsView: View {
         .onAppear {
             name = chatService.displayName
             visible = LocalIdentity.isNearbyVisible
+            keepAwake = LocalIdentity.keepScreenAwake
+            UIApplication.shared.isIdleTimerDisabled = keepAwake
         }
         .onDisappear(perform: saveName)
     }

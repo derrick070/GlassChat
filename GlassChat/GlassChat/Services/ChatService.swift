@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import SwiftData
 import SwiftUI
+import UIKit
 
 @Observable
 @MainActor
@@ -40,11 +41,28 @@ final class ChatService {
     }
 
     func handleScenePhase(_ phase: ScenePhase) {
-        guard phase == .active else { return }
-        if LocalIdentity.isNearbyVisible {
-            transport.start()
+        switch phase {
+        case .active:
+            BackgroundSessionKeeper.end()
+            UIApplication.shared.isIdleTimerDisabled = LocalIdentity.keepScreenAwake
+            if LocalIdentity.isNearbyVisible {
+                if transport.isRunning {
+                    transport.refreshDiscovery()
+                } else {
+                    transport.start()
+                }
+            }
+            flushOutbox()
+            Task { await NotificationService.shared.setBadge(totalUnreadCount()) }
+        case .inactive, .background:
+            // Ask iOS for extra runtime so existing Multipeer sessions last longer.
+            // This is best-effort (usually ~30s–a few minutes) — not indefinite.
+            if transport.isRunning, !transport.connectedPeers.isEmpty {
+                BackgroundSessionKeeper.beginIfNeeded()
+            }
+        @unknown default:
+            break
         }
-        flushOutbox()
     }
 
     func updateDisplayName(_ name: String) {
@@ -58,6 +76,13 @@ final class ChatService {
         }
     }
 
+    /// Ask for notification permission once the user starts chatting.
+    func prepareNotifications() {
+        Task {
+            await NotificationService.shared.requestAuthorizationIfNeeded()
+        }
+    }
+
     var localUUID: UUID { transport.peerUUID }
     var displayName: String { transport.displayName }
     var shortID: String { transport.shortID }
@@ -66,6 +91,7 @@ final class ChatService {
 
     @discardableResult
     func openOrCreateDirectChat(with peer: ConnectedPeer) -> Chat {
+        prepareNotifications()
         upsertPeer(uuid: peer.uuid, displayName: peer.displayName)
         let chatID = directChatID(with: peer.uuid)
         if let existing = fetchChat(id: chatID) {
@@ -86,6 +112,7 @@ final class ChatService {
 
     @discardableResult
     func createGroup(name: String, members: [ConnectedPeer]) throws -> Chat {
+        prepareNotifications()
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ChatServiceError.invalidGroupName }
         guard members.count <= 7 else { throw ChatServiceError.groupTooLarge }
@@ -138,6 +165,8 @@ final class ChatService {
     func markChatRead(_ chat: Chat) {
         chat.unreadCount = 0
         try? modelContext.save()
+        NotificationService.shared.clearNotifications(for: chat.id)
+        Task { await NotificationService.shared.setBadge(totalUnreadCount()) }
     }
 
     func flushOutbox(for peerUUID: UUID? = nil) {
@@ -201,6 +230,8 @@ final class ChatService {
             return
         }
 
+        prepareNotifications()
+
         let chat = materializeChat(
             chatID: chatID,
             groupInfo: frame.groupInfo,
@@ -220,15 +251,33 @@ final class ChatService {
         )
         chat.messages.append(message)
         chat.lastMessageAt = sentAt
-        if activeChatID != chat.id {
+        let chatIsOpen = activeChatID == chat.id
+        if !chatIsOpen {
             chat.unreadCount += 1
         }
         modelContext.insert(message)
-        upsertPeer(
-            uuid: sender,
-            displayName: transport.connectedPeers.first(where: { $0.uuid == sender })?.displayName ?? chat.name
-        )
+        let senderName = transport.connectedPeers.first(where: { $0.uuid == sender })?.displayName
+            ?? chat.name
+        upsertPeer(uuid: sender, displayName: senderName)
         try? modelContext.save()
+
+        let title: String
+        let body: String
+        if chat.kind == .group {
+            title = chat.name
+            body = "\(senderName): \(text)"
+        } else {
+            title = senderName
+            body = text
+        }
+        NotificationService.shared.notifyNewMessage(
+            messageID: messageID,
+            chatID: chat.id,
+            title: title,
+            body: body,
+            suppressBecauseChatIsOpen: chatIsOpen,
+            unreadTotal: totalUnreadCount()
+        )
     }
 
     private func handleAck(_ frame: WireFrame, from sender: UUID) {
@@ -371,6 +420,12 @@ final class ChatService {
         sequenceStore[key] = next
         UserDefaults.standard.set(Int(next), forKey: key)
         return next
+    }
+
+    private func totalUnreadCount() -> Int {
+        let descriptor = FetchDescriptor<Chat>()
+        let chats = (try? modelContext.fetch(descriptor)) ?? []
+        return chats.reduce(0) { $0 + $1.unreadCount }
     }
 }
 

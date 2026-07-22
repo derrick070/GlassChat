@@ -24,8 +24,11 @@ final class MultipeerTransport: NSObject {
 
     private var mcPeerToUUID: [MCPeerID: UUID] = [:]
     private var uuidToMCPeer: [UUID: MCPeerID] = [:]
+    private var discoveredUUIDByPeer: [MCPeerID: UUID] = [:]
     private var pendingInvites: Set<MCPeerID> = []
     private var helloSent: Set<MCPeerID> = []
+
+    private static let inviteTimeout: TimeInterval = 30
 
     private let eventContinuation: AsyncStream<TransportEvent>.Continuation
     let events: AsyncStream<TransportEvent>
@@ -42,8 +45,16 @@ final class MultipeerTransport: NSObject {
     func start() {
         guard !isRunning else { return }
         isRunning = true
-        advertiser.startAdvertisingPeer()
-        browser.startBrowsingForPeers()
+        beginDiscovery()
+    }
+
+    /// Restarts advertising/browsing without tearing down the session.
+    /// Call when returning to foreground — iOS often suspends discovery in background.
+    func refreshDiscovery() {
+        guard isRunning else { return }
+        advertiser.stopAdvertisingPeer()
+        browser.stopBrowsingForPeers()
+        beginDiscovery()
     }
 
     func stop() {
@@ -56,6 +67,7 @@ final class MultipeerTransport: NSObject {
         discoveredPeerNames = []
         mcPeerToUUID.removeAll()
         uuidToMCPeer.removeAll()
+        discoveredUUIDByPeer.removeAll()
         pendingInvites.removeAll()
         helloSent.removeAll()
         configureSession()
@@ -129,6 +141,65 @@ final class MultipeerTransport: NSObject {
     private func shouldInvite(_ remoteUUID: UUID) -> Bool {
         identity.peerUUID.uuidString < remoteUUID.uuidString
     }
+
+    private func beginDiscovery() {
+        advertiser.startAdvertisingPeer()
+        browser.startBrowsingForPeers()
+    }
+
+    private func scheduleInvite(to peerID: MCPeerID, remoteUUID: UUID) {
+        guard isRunning, shouldInvite(remoteUUID) else { return }
+        guard !pendingInvites.contains(peerID),
+              !session.connectedPeers.contains(peerID) else { return }
+        guard session.connectedPeers.count < 7 else { return }
+
+        pendingInvites.insert(peerID)
+        browser.invitePeer(peerID, to: session, withContext: nil, timeout: Self.inviteTimeout)
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.inviteTimeout + 1))
+            pendingInvites.remove(peerID)
+            if isRunning, !session.connectedPeers.contains(peerID) {
+                refreshDiscovery()
+            }
+        }
+    }
+
+    private func rebuildSessionAndDiscovery() {
+        guard isRunning else { return }
+        advertiser.stopAdvertisingPeer()
+        browser.stopBrowsingForPeers()
+        session.disconnect()
+        mcPeerToUUID.removeAll()
+        uuidToMCPeer.removeAll()
+        connectedPeers = []
+        pendingInvites.removeAll()
+        helloSent.removeAll()
+        configureSession()
+        beginDiscovery()
+
+        for (peerID, remoteUUID) in discoveredUUIDByPeer {
+            scheduleInvite(to: peerID, remoteUUID: remoteUUID)
+        }
+    }
+
+    private func handleDisconnect(from peerID: MCPeerID) {
+        let remoteUUID = mcPeerToUUID[peerID]
+        if let uuid = mcPeerToUUID.removeValue(forKey: peerID) {
+            uuidToMCPeer.removeValue(forKey: uuid)
+            connectedPeers.removeAll { $0.uuid == uuid }
+            eventContinuation.yield(.peerDisconnected(uuid))
+        }
+        helloSent.remove(peerID)
+        pendingInvites.remove(peerID)
+
+        guard isRunning else { return }
+        if connectedPeers.isEmpty {
+            rebuildSessionAndDiscovery()
+        } else if let remoteUUID {
+            scheduleInvite(to: peerID, remoteUUID: remoteUUID)
+        }
+    }
 }
 
 enum TransportError: Error {
@@ -146,19 +217,23 @@ extension MultipeerTransport: MCSessionDelegate {
             case .connected:
                 sendHello(to: peerID)
             case .notConnected:
-                if let uuid = mcPeerToUUID.removeValue(forKey: peerID) {
-                    uuidToMCPeer.removeValue(forKey: uuid)
-                    connectedPeers.removeAll { $0.uuid == uuid }
-                    eventContinuation.yield(.peerDisconnected(uuid))
-                }
-                helloSent.remove(peerID)
-                pendingInvites.remove(peerID)
+                handleDisconnect(from: peerID)
             case .connecting:
                 break
             @unknown default:
                 break
             }
         }
+    }
+
+    // Required workaround: docs mark this optional, but omitting it causes random disconnects.
+    nonisolated func session(
+        _ session: MCSession,
+        didReceiveCertificate certificate: [Any]?,
+        fromPeer peerID: MCPeerID,
+        certificateHandler: @escaping (Bool) -> Void
+    ) {
+        certificateHandler(true)
     }
 
     nonisolated func session(
@@ -231,13 +306,8 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
             guard let uuidString = info?["uuid"], let remoteUUID = UUID(uuidString: uuidString) else {
                 return
             }
-            guard shouldInvite(remoteUUID) else { return }
-            guard !pendingInvites.contains(peerID),
-                  session.connectedPeers.contains(peerID) == false else { return }
-            // MCSession hard ceiling is 8 peers (self + 7 others).
-            guard session.connectedPeers.count < 7 else { return }
-            pendingInvites.insert(peerID)
-            browser.invitePeer(peerID, to: session, withContext: nil, timeout: 12)
+            discoveredUUIDByPeer[peerID] = remoteUUID
+            scheduleInvite(to: peerID, remoteUUID: remoteUUID)
         }
     }
 
@@ -247,6 +317,7 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
     ) {
         Task { @MainActor in
             discoveredPeerNames.removeAll { $0 == peerID.displayName }
+            discoveredUUIDByPeer.removeValue(forKey: peerID)
             pendingInvites.remove(peerID)
         }
     }

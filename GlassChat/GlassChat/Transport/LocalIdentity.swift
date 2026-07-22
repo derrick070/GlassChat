@@ -17,6 +17,7 @@ struct LocalIdentity {
         static let peerUUID = "glasschat.peerUUID"
         static let mcPeerID = "glasschat.mcPeerID"
         static let nearbyVisible = "glasschat.nearbyVisible"
+        static let keepScreenAwake = "glasschat.keepScreenAwake"
     }
 
     static var isNearbyVisible: Bool {
@@ -25,6 +26,15 @@ struct LocalIdentity {
             return UserDefaults.standard.bool(forKey: Keys.nearbyVisible)
         }
         set { UserDefaults.standard.set(newValue, forKey: Keys.nearbyVisible) }
+    }
+
+    /// Prevents the screen from sleeping while GlassChat is open (helps Multipeer stay up).
+    static var keepScreenAwake: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.keepScreenAwake) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Keys.keepScreenAwake)
+            UIApplication.shared.isIdleTimerDisabled = newValue
+        }
     }
 
     static var hasChosenDisplayName: Bool {
@@ -65,7 +75,7 @@ struct LocalIdentity {
         }
         let label = "\(displayName)#\(uuid.uuidString.prefix(4))"
         let peer = MCPeerID(displayName: String(label.prefix(63)))
-        if let data = try? NSKeyedArchiver.archivedData(requiringSecureCoding: true, from: peer) {
+        if let data = try? NSKeyedArchiver.archivedData(withRootObject: peer, requiringSecureCoding: true) {
             UserDefaults.standard.set(data, forKey: Keys.mcPeerID)
         }
         return peer

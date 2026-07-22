@@ -20,6 +20,8 @@
 		1A543CE3FD660BA5755D3421 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E5A8E1A3B633010472E2F8 /* Message.swift */; };
 		338C799300726E546912343F /* Peer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996882153DD6BF0C90DE1C9 /* Peer.swift */; };
 		889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACC8879F4EAD311FA67743 /* ChatService.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* NotificationService.swift */; };
+		C2D3E4F5061728394A5B6C7D /* BackgroundSessionKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */; };
 		FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A793029230D8795C497A4D3 /* LocalIdentity.swift */; };
 		E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */; };
 		F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238AB9067C440029CD0E6E67 /* TransportEvent.swift */; };
@@ -57,6 +59,8 @@
 		06E5A8E1A3B633010472E2F8 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		5996882153DD6BF0C90DE1C9 /* Peer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Peer.swift; sourceTree = "<group>"; };
 		41ACC8879F4EAD311FA67743 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5061728394A5B6C /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionKeeper.swift; sourceTree = "<group>"; };
 		3A793029230D8795C497A4D3 /* LocalIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalIdentity.swift; sourceTree = "<group>"; };
 		F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransport.swift; sourceTree = "<group>"; };
 		238AB9067C440029CD0E6E67 /* TransportEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportEvent.swift; sourceTree = "<group>"; };
@@ -143,6 +147,8 @@
 			isa = PBXGroup;
 			children = (
 				41ACC8879F4EAD311FA67743 /* ChatService.swift */,
+				B1C2D3E4F5061728394A5B6C /* NotificationService.swift */,
+				D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -281,6 +287,8 @@
 				1A543CE3FD660BA5755D3421 /* Message.swift in Sources */,
 				338C799300726E546912343F /* Peer.swift in Sources */,
 				889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* NotificationService.swift in Sources */,
+				C2D3E4F5061728394A5B6C7D /* BackgroundSessionKeeper.swift in Sources */,
 				FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */,
 				E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */,
 				F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */,

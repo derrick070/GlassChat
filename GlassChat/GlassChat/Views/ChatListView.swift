@@ -11,6 +11,7 @@ private enum AppRoute: Hashable {
 struct ChatListView: View {
     @Environment(ChatService.self) private var chatService
     @Environment(MultipeerTransport.self) private var transport
+    @Environment(NotificationService.self) private var notifications
     @Query(sort: \Chat.lastMessageAt, order: .reverse) private var chats: [Chat]
 
     @State private var path = NavigationPath()
@@ -82,7 +83,16 @@ struct ChatListView: View {
                 draftName = chatService.displayName
                 showNameSheet = true
             }
+            openPendingChatIfNeeded()
         }
+        .onChange(of: notifications.pendingChatID) { _, _ in
+            openPendingChatIfNeeded()
+        }
+    }
+
+    private func openPendingChatIfNeeded() {
+        guard let chatID = notifications.consumePendingChatID() else { return }
+        path.append(AppRoute.chat(chatID))
     }
 
     private var chatList: some View {
