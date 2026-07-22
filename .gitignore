@@ -1,0 +1,11 @@
+# Xcode
+GlassChat/build/
+**/xcuserdata/
+*.xcuserstate
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store

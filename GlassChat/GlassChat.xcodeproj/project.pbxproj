@@ -1,35 +1,36 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		404CEF5A41413F08C800C8F5 /* GlassChatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */; };
+		040E124532F2A981B0DC2F59 /* GlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765DF6D93F6A59292F41F3ED /* GlassTheme.swift */; };
+		04A7814E4EEC70DE7D6C41B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32BB636196F91ED59D7A4919 /* Assets.xcassets */; };
+		1A543CE3FD660BA5755D3421 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E5A8E1A3B633010472E2F8 /* Message.swift */; };
+		1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB09F722F8A0476ACA95938E /* WireFrameTests.swift */; };
 		217E25614635083CA853AE13 /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8EB9B083E67DC890858A553 /* ChatListView.swift */; };
 		285EEBC20BCF49DDBC9F13E6 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248E15D859FA37D90B3E32C3 /* ChatView.swift */; };
-		7DDF9E0795924179CC6DB70A /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629C838172F1A6149E270729 /* MessageBubble.swift */; };
-		6F5D0F1A337522FAC7CB1E5B /* NewGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68BBB26B84004D21E0995E6 /* NewGroupView.swift */; };
-		B4D2C3619D37C4BD5C79FDAE /* PeerBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C17B5032DB4DA5315AEEE15 /* PeerBrowserView.swift */; };
-		96DB7E6E3522B1E65F37A194 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE708EA46D4E9AA32E4749E /* SettingsView.swift */; };
 		2E10091E145F2D33D7D932DF /* GlassButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1C1C4AAB615FBEAD3EED73 /* GlassButton.swift */; };
-		E26A83DDFE827DC1AAA3D920 /* GlassSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */; };
-		040E124532F2A981B0DC2F59 /* GlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765DF6D93F6A59292F41F3ED /* GlassTheme.swift */; };
-		ECD169A395FAC121F23325BF /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63153A1B76055075BA43711 /* Chat.swift */; };
-		1A543CE3FD660BA5755D3421 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E5A8E1A3B633010472E2F8 /* Message.swift */; };
-		338C799300726E546912343F /* Peer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996882153DD6BF0C90DE1C9 /* Peer.swift */; };
-		889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACC8879F4EAD311FA67743 /* ChatService.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* NotificationService.swift */; };
-		C2D3E4F5061728394A5B6C7D /* BackgroundSessionKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */; };
-		FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A793029230D8795C497A4D3 /* LocalIdentity.swift */; };
-		E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */; };
-		F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238AB9067C440029CD0E6E67 /* TransportEvent.swift */; };
 		328A5622596878029E59A1B8 /* WireFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B933A1855064DA84205346A /* WireFrame.swift */; };
-		F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */; };
+		338C799300726E546912343F /* Peer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5996882153DD6BF0C90DE1C9 /* Peer.swift */; };
+		404CEF5A41413F08C800C8F5 /* GlassChatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */; };
+		6F5D0F1A337522FAC7CB1E5B /* NewGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68BBB26B84004D21E0995E6 /* NewGroupView.swift */; };
+		7DDF9E0795924179CC6DB70A /* MessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 629C838172F1A6149E270729 /* MessageBubble.swift */; };
+		889E9F6AA05B51D89335DF72 /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ACC8879F4EAD311FA67743 /* ChatService.swift */; };
+		96DB7E6E3522B1E65F37A194 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE708EA46D4E9AA32E4749E /* SettingsView.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5061728394A5B6C /* NotificationService.swift */; };
+		B4D2C3619D37C4BD5C79FDAE /* PeerBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C17B5032DB4DA5315AEEE15 /* PeerBrowserView.swift */; };
 		BFB63C6B0B6661E87D90CED3 /* OutboxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0DEC48F9465B7B6779D161 /* OutboxTests.swift */; };
-		1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB09F722F8A0476ACA95938E /* WireFrameTests.swift */; };
-		04A7814E4EEC70DE7D6C41B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 32BB636196F91ED59D7A4919 /* Assets.xcassets */; };
+		C2D3E4F5061728394A5B6C7D /* BackgroundSessionKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */; };
+		E26A83DDFE827DC1AAA3D920 /* GlassSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */; };
+		E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */; };
+		ECD169A395FAC121F23325BF /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = B63153A1B76055075BA43711 /* Chat.swift */; };
+		F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238AB9067C440029CD0E6E67 /* TransportEvent.swift */; };
+		F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */; };
+		FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A793029230D8795C497A4D3 /* LocalIdentity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,33 +44,33 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7BCCADA3021C07D12E775CB5 /* GlassChat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GlassChat.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13CE9A6819AD5B20AA06C438 /* GlassChatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlassChatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassChatApp.swift; sourceTree = "<group>"; };
-		E8EB9B083E67DC890858A553 /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
-		248E15D859FA37D90B3E32C3 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		629C838172F1A6149E270729 /* MessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubble.swift; sourceTree = "<group>"; };
-		C68BBB26B84004D21E0995E6 /* NewGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewGroupView.swift; sourceTree = "<group>"; };
-		0C17B5032DB4DA5315AEEE15 /* PeerBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerBrowserView.swift; sourceTree = "<group>"; };
-		3DE708EA46D4E9AA32E4749E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		8E1C1C4AAB615FBEAD3EED73 /* GlassButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassButton.swift; sourceTree = "<group>"; };
-		1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSurface.swift; sourceTree = "<group>"; };
-		765DF6D93F6A59292F41F3ED /* GlassTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTheme.swift; sourceTree = "<group>"; };
-		B63153A1B76055075BA43711 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
 		06E5A8E1A3B633010472E2F8 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
-		5996882153DD6BF0C90DE1C9 /* Peer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Peer.swift; sourceTree = "<group>"; };
-		41ACC8879F4EAD311FA67743 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
-		B1C2D3E4F5061728394A5B6C /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
-		D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionKeeper.swift; sourceTree = "<group>"; };
-		3A793029230D8795C497A4D3 /* LocalIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalIdentity.swift; sourceTree = "<group>"; };
-		F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransport.swift; sourceTree = "<group>"; };
-		238AB9067C440029CD0E6E67 /* TransportEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportEvent.swift; sourceTree = "<group>"; };
-		2B933A1855064DA84205346A /* WireFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireFrame.swift; sourceTree = "<group>"; };
-		509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatServiceTests.swift; sourceTree = "<group>"; };
+		0C17B5032DB4DA5315AEEE15 /* PeerBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerBrowserView.swift; sourceTree = "<group>"; };
+		13CE9A6819AD5B20AA06C438 /* GlassChatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlassChatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1D0DEC48F9465B7B6779D161 /* OutboxTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboxTests.swift; sourceTree = "<group>"; };
-		AB09F722F8A0476ACA95938E /* WireFrameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireFrameTests.swift; sourceTree = "<group>"; };
+		1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassSurface.swift; sourceTree = "<group>"; };
+		238AB9067C440029CD0E6E67 /* TransportEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportEvent.swift; sourceTree = "<group>"; };
+		248E15D859FA37D90B3E32C3 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		2B933A1855064DA84205346A /* WireFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireFrame.swift; sourceTree = "<group>"; };
 		32BB636196F91ED59D7A4919 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3A793029230D8795C497A4D3 /* LocalIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalIdentity.swift; sourceTree = "<group>"; };
+		3DE708EA46D4E9AA32E4749E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		41ACC8879F4EAD311FA67743 /* ChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatService.swift; sourceTree = "<group>"; };
+		509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatServiceTests.swift; sourceTree = "<group>"; };
+		5996882153DD6BF0C90DE1C9 /* Peer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Peer.swift; sourceTree = "<group>"; };
+		629C838172F1A6149E270729 /* MessageBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubble.swift; sourceTree = "<group>"; };
+		75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassChatApp.swift; sourceTree = "<group>"; };
+		765DF6D93F6A59292F41F3ED /* GlassTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassTheme.swift; sourceTree = "<group>"; };
+		7BCCADA3021C07D12E775CB5 /* GlassChat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GlassChat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8E1C1C4AAB615FBEAD3EED73 /* GlassButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassButton.swift; sourceTree = "<group>"; };
+		AB09F722F8A0476ACA95938E /* WireFrameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WireFrameTests.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5061728394A5B6C /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		B63153A1B76055075BA43711 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
+		C68BBB26B84004D21E0995E6 /* NewGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewGroupView.swift; sourceTree = "<group>"; };
 		CAF9B6B99962BF5C22648242 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionKeeper.swift; sourceTree = "<group>"; };
+		E8EB9B083E67DC890858A553 /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
+		F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +91,36 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		02CB4EE95E3D5BEF557EE920 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B63153A1B76055075BA43711 /* Chat.swift */,
+				06E5A8E1A3B633010472E2F8 /* Message.swift */,
+				5996882153DD6BF0C90DE1C9 /* Peer.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		2BA32386C2ADAD13E88BA203 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				41ACC8879F4EAD311FA67743 /* ChatService.swift */,
+				B1C2D3E4F5061728394A5B6C /* NotificationService.swift */,
+				D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		516831D832DDC7318520265A /* GlassChatTests */ = {
+			isa = PBXGroup;
+			children = (
+				509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */,
+				1D0DEC48F9465B7B6779D161 /* OutboxTests.swift */,
+				AB09F722F8A0476ACA95938E /* WireFrameTests.swift */,
+			);
+			path = GlassChatTests;
+			sourceTree = "<group>";
+		};
 		5928955287B8089ED2177128 = {
 			isa = PBXGroup;
 			children = (
@@ -97,6 +128,16 @@
 				516831D832DDC7318520265A /* GlassChatTests */,
 				86024CAD1E83101D97359D73 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		7BE821AE242A7049C7946D3B /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				8E1C1C4AAB615FBEAD3EED73 /* GlassButton.swift */,
+				1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */,
+				765DF6D93F6A59292F41F3ED /* GlassTheme.swift */,
+			);
+			path = DesignSystem;
 			sourceTree = "<group>";
 		};
 		86024CAD1E83101D97359D73 /* Products */ = {
@@ -123,36 +164,6 @@
 			path = GlassChat;
 			sourceTree = "<group>";
 		};
-		7BE821AE242A7049C7946D3B /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				8E1C1C4AAB615FBEAD3EED73 /* GlassButton.swift */,
-				1D5DE80FB2575F39BDB7BFCF /* GlassSurface.swift */,
-				765DF6D93F6A59292F41F3ED /* GlassTheme.swift */,
-			);
-			path = DesignSystem;
-			sourceTree = "<group>";
-		};
-		02CB4EE95E3D5BEF557EE920 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				B63153A1B76055075BA43711 /* Chat.swift */,
-				06E5A8E1A3B633010472E2F8 /* Message.swift */,
-				5996882153DD6BF0C90DE1C9 /* Peer.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		2BA32386C2ADAD13E88BA203 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				41ACC8879F4EAD311FA67743 /* ChatService.swift */,
-				B1C2D3E4F5061728394A5B6C /* NotificationService.swift */,
-				D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
 		D1471958BC7A688936997D72 /* Transport */ = {
 			isa = PBXGroup;
 			children = (
@@ -177,36 +188,9 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		516831D832DDC7318520265A /* GlassChatTests */ = {
-			isa = PBXGroup;
-			children = (
-				509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */,
-				1D0DEC48F9465B7B6779D161 /* OutboxTests.swift */,
-				AB09F722F8A0476ACA95938E /* WireFrameTests.swift */,
-			);
-			path = GlassChatTests;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6439CF22188FA14BBD363342 /* GlassChat */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E850913E5F419DF1836B1B18 /* Build configuration list for PBXNativeTarget "GlassChat" */;
-			buildPhases = (
-				E7209FB05162B7572F88D05E /* Sources */,
-				29B2D46AA747A59804D46E1F /* Frameworks */,
-				66F8606E9F0A136E2228EBCB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = GlassChat;
-			productName = GlassChat;
-			productReference = 7BCCADA3021C07D12E775CB5 /* GlassChat.app */;
-			productType = "com.apple.product-type.application";
-		};
 		384AED6A9A6E51F8FA09FB01 /* GlassChatTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5736B0A2BE3429717885D91C /* Build configuration list for PBXNativeTarget "GlassChatTests" */;
@@ -224,6 +208,23 @@
 			productReference = 13CE9A6819AD5B20AA06C438 /* GlassChatTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		6439CF22188FA14BBD363342 /* GlassChat */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E850913E5F419DF1836B1B18 /* Build configuration list for PBXNativeTarget "GlassChat" */;
+			buildPhases = (
+				E7209FB05162B7572F88D05E /* Sources */,
+				29B2D46AA747A59804D46E1F /* Frameworks */,
+				66F8606E9F0A136E2228EBCB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GlassChat;
+			productName = GlassChat;
+			productReference = 7BCCADA3021C07D12E775CB5 /* GlassChat.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -234,8 +235,13 @@
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
-					6439CF22188FA14BBD363342 = { CreatedOnToolsVersion = 16.0; };
-					384AED6A9A6E51F8FA09FB01 = { CreatedOnToolsVersion = 16.0; TestTargetID = 6439CF22188FA14BBD363342; };
+					384AED6A9A6E51F8FA09FB01 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 6439CF22188FA14BBD363342;
+					};
+					6439CF22188FA14BBD363342 = {
+						CreatedOnToolsVersion = 16.0;
+					};
 				};
 			};
 			buildConfigurationList = CB7CBE0C3B42E7D081FECC31 /* Build configuration list for PBXProject "GlassChat" */;
@@ -269,6 +275,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		6E010B3D85AA514D3FB28B7F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */,
+				BFB63C6B0B6661E87D90CED3 /* OutboxTests.swift in Sources */,
+				1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E7209FB05162B7572F88D05E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -296,16 +312,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		6E010B3D85AA514D3FB28B7F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */,
-				BFB63C6B0B6661E87D90CED3 /* OutboxTests.swift in Sources */,
-				1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -317,38 +323,19 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		EC86DC4F4B4C60C3EC031655 /* Debug */ = {
+		0B861AF66ECE710E9705AE9F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_TESTABILITY = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		7BF40F069D95C38DE60AA602 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_TESTABILITY = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				ONLY_ACTIVE_ARCH = NO;
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				SWIFT_COMPILATION_MODE = wholemodule;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassChat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GlassChat";
 			};
 			name = Release;
 		};
@@ -358,6 +345,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y6P4X7XYZ7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlassChat/Info.plist;
@@ -383,6 +371,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y6P4X7XYZ7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GlassChat/Info.plist;
@@ -418,25 +407,53 @@
 			};
 			name = Debug;
 		};
-		0B861AF66ECE710E9705AE9F /* Release */ = {
+		7BF40F069D95C38DE60AA602 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_TESTABILITY = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.glasschat.app.tests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GlassChat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GlassChat";
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
+		};
+		EC86DC4F4B4C60C3EC031655 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5736B0A2BE3429717885D91C /* Build configuration list for PBXNativeTarget "GlassChatTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				74552497E519648B383D6A90 /* Debug */,
+				0B861AF66ECE710E9705AE9F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CB7CBE0C3B42E7D081FECC31 /* Build configuration list for PBXProject "GlassChat" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -451,15 +468,6 @@
 			buildConfigurations = (
 				0F9FC8EE2C99E07A9753399D /* Debug */,
 				1483FA26082F598A11F242FF /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		5736B0A2BE3429717885D91C /* Build configuration list for PBXNativeTarget "GlassChatTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				74552497E519648B383D6A90 /* Debug */,
-				0B861AF66ECE710E9705AE9F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
