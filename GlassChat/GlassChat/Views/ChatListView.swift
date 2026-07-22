@@ -5,6 +5,7 @@ private enum AppRoute: Hashable {
     case chat(UUID)
     case peerBrowser
     case newGroup
+    case editGroup(UUID)
     case settings
 }
 
@@ -57,17 +58,25 @@ struct ChatListView: View {
                 switch route {
                 case .chat(let chatID):
                     if let chat = chats.first(where: { $0.id == chatID }) {
-                        ChatView(chat: chat)
+                        ChatView(chat: chat) {
+                            path.append(AppRoute.editGroup(chat.id))
+                        }
                     } else {
                         ContentUnavailableView("Chat unavailable", systemImage: "bubble.left.and.bubble.right")
                     }
                 case .peerBrowser:
                     PeerBrowserView { chat in
-                        path.append(AppRoute.chat(chat.id))
+                        replaceTop(with: .chat(chat.id))
                     }
                 case .newGroup:
                     NewGroupView { chat in
-                        path.append(AppRoute.chat(chat.id))
+                        replaceTop(with: .chat(chat.id))
+                    }
+                case .editGroup(let chatID):
+                    if let chat = chats.first(where: { $0.id == chatID }) {
+                        EditGroupView(chat: chat)
+                    } else {
+                        ContentUnavailableView("Group unavailable", systemImage: "person.3")
                     }
                 case .settings:
                     SettingsView()
@@ -95,6 +104,14 @@ struct ChatListView: View {
         path.append(AppRoute.chat(chatID))
     }
 
+    /// Replace the current destination (e.g. New Group) so Back returns to the list.
+    private func replaceTop(with route: AppRoute) {
+        if !path.isEmpty {
+            path.removeLast()
+        }
+        path.append(route)
+    }
+
     private var chatList: some View {
         List {
             ForEach(chats, id: \.id) { chat in
@@ -106,6 +123,13 @@ struct ChatListView: View {
                         .fill(.ultraThinMaterial)
                         .padding(.vertical, 2)
                 )
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        chatService.deleteChat(chat)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
         }
         .scrollContentBackground(.hidden)

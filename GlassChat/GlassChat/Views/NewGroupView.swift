@@ -8,6 +8,7 @@ struct NewGroupView: View {
     @State private var name = ""
     @State private var selected: Set<UUID> = []
     @State private var errorMessage: String?
+    @State private var isCreating = false
 
     private var selectedPeers: [ConnectedPeer] {
         transport.connectedPeers.filter { selected.contains($0.uuid) }
@@ -62,21 +63,30 @@ struct NewGroupView: View {
                 Button("Create") {
                     create()
                 }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selected.isEmpty)
+                .disabled(
+                    isCreating
+                        || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || selected.isEmpty
+                )
             }
         }
     }
 
     private func create() {
+        guard !isCreating else { return }
+        isCreating = true
         do {
             let chat = try chatService.createGroup(name: name, members: selectedPeers)
             onCreated(chat)
         } catch ChatServiceError.groupTooLarge {
             errorMessage = "Groups can have at most 7 other members."
+            isCreating = false
         } catch ChatServiceError.invalidGroupName {
             errorMessage = "Enter a group name."
+            isCreating = false
         } catch {
             errorMessage = "Could not create group."
+            isCreating = false
         }
     }
 }

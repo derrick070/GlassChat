@@ -130,6 +130,52 @@ final class ChatService {
         return chat
     }
 
+    func updateGroup(_ chat: Chat, name: String, addMembers: [ConnectedPeer]) throws {
+        guard chat.kind == .group else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw ChatServiceError.invalidGroupName }
+
+        var members = Set(chat.memberUUIDs)
+        for peer in addMembers {
+            guard members.count < 8 else { throw ChatServiceError.groupTooLarge }
+            members.insert(peer.uuid)
+            upsertPeer(uuid: peer.uuid, displayName: peer.displayName)
+        }
+        chat.name = trimmed
+        chat.memberUUIDs = Array(members).sorted { $0.uuidString < $1.uuidString }
+        try modelContext.save()
+
+        // Announce so other devices pick up the updated membership via groupInfo.
+        if !addMembers.isEmpty {
+            let names = addMembers.map(\.displayName).joined(separator: ", ")
+            send(text: "Added \(names) to the group", in: chat)
+        }
+    }
+
+    func deleteChat(_ chat: Chat) {
+        let id = chat.id
+        if activeChatID == id {
+            activeChatID = nil
+        }
+        NotificationService.shared.clearNotifications(for: id)
+        modelContext.delete(chat)
+        try? modelContext.save()
+        Task { await NotificationService.shared.setBadge(totalUnreadCount()) }
+    }
+
+    func peerDisplayName(for uuid: UUID) -> String {
+        if uuid == transport.peerUUID { return transport.displayName }
+        if let live = transport.connectedPeers.first(where: { $0.uuid == uuid })?.displayName {
+            return live
+        }
+        let peerID = uuid
+        let descriptor = FetchDescriptor<Peer>(predicate: #Predicate { $0.uuid == peerID })
+        if let peer = try? modelContext.fetch(descriptor).first {
+            return peer.displayName
+        }
+        return String(uuid.uuidString.prefix(8)).uppercased()
+    }
+
     // MARK: - Send / Receive
 
     func send(text: String, in chat: Chat) {

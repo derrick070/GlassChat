@@ -4,9 +4,12 @@ import SwiftData
 struct ChatView: View {
     @Environment(ChatService.self) private var chatService
     @Environment(MultipeerTransport.self) private var transport
+    @Environment(\.dismiss) private var dismiss
     @Bindable var chat: Chat
+    var onEditGroup: (() -> Void)?
 
     @State private var draft = ""
+    @State private var showDeleteConfirm = false
     @FocusState private var composerFocused: Bool
 
     private var sortedMessages: [Message] {
@@ -59,6 +62,39 @@ struct ChatView: View {
         .navigationTitle(chat.name)
         .navigationBarTitleDisplayMode(.inline)
         .background(AtmosphereBackground())
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    if chat.kind == .group {
+                        Button {
+                            onEditGroup?()
+                        } label: {
+                            Label("Edit Group", systemImage: "person.3")
+                        }
+                    }
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label(chat.kind == .group ? "Delete Group" : "Delete Chat", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .confirmationDialog(
+            chat.kind == .group ? "Delete this group?" : "Delete this chat?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                chatService.deleteChat(chat)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Messages stay only on this device and will be removed here.")
+        }
         .onAppear {
             chatService.setActiveChat(chat.id)
         }
