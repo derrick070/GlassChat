@@ -16,11 +16,12 @@ final class ChatService {
     init(modelContext: ModelContext, transport: MultipeerTransport) {
         self.modelContext = modelContext
         self.transport = transport
-        // Subscribe once for the lifetime of the service. AsyncStream is
-        // single-consumer; cancelling the iterator finishes the stream.
+        // Subscribe once for the app-lifetime of this service. AsyncStream is
+        // single-consumer; cancelling the iterator finishes the stream forever.
+        // Intentionally retains self for the process lifetime (singleton).
         eventTask = Task { [weak self] in
             guard let self else { return }
-            for await event in transport.events {
+            for await event in self.transport.events {
                 await self.handle(event)
             }
         }

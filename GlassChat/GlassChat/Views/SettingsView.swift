@@ -49,6 +49,8 @@ struct SettingsView: View {
     }
 
     private func saveName() {
-        chatService.updateDisplayName(name)
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != chatService.displayName else { return }
+        chatService.updateDisplayName(trimmed)
     }
 }
