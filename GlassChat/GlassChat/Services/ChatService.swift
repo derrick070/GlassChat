@@ -575,6 +575,7 @@ final class ChatService {
         guard let blobIDHex = frame.blobIDHex?.lowercased() else { return }
         guard let message = fetchMessage(blobIDHex: blobIDHex),
               let key = message.blobKeyData else { return }
+        guard message.mediaTransfer != .ready else { return }
 
         if let plain = mediaTransfer.handleBlobChunk(
             frame,
