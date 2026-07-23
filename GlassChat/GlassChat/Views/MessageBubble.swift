@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessageBubble: View {
     let message: Message
+    var senderName: String? = nil
     var onRetry: (() -> Void)?
 
     var body: some View {
@@ -9,6 +10,13 @@ struct MessageBubble: View {
             if message.isFromMe { Spacer(minLength: 48) }
 
             VStack(alignment: message.isFromMe ? .trailing : .leading, spacing: 4) {
+                if let senderName, !message.isFromMe {
+                    Text(senderName)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(GlassTheme.accent)
+                        .padding(.horizontal, 4)
+                }
+
                 Text(message.text)
                     .font(.body)
                     .foregroundStyle(message.isFromMe ? Color.white : Color.primary)

@@ -235,8 +235,14 @@ struct ChatListView: View {
         guard let last = chat.messages.max(by: { $0.sentAt < $1.sentAt }) else {
             return "No messages yet"
         }
-        let prefix = last.isFromMe ? "You: " : ""
-        return prefix + last.text
+        if last.isFromMe {
+            return "You: \(last.text)"
+        }
+        if chat.kind == .group {
+            let name = chatService.peerDisplayName(for: last.senderUUID)
+            return "\(name): \(last.text)"
+        }
+        return last.text
     }
 
     private func connectivityColor(for chat: Chat) -> Color {

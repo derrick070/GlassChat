@@ -35,7 +35,10 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(sortedMessages, id: \.id) { message in
-                            MessageBubble(message: message) {
+                            MessageBubble(
+                                message: message,
+                                senderName: groupSenderName(for: message)
+                            ) {
                                 chatService.retry(message)
                             }
                             .id(message.id)
@@ -103,6 +106,11 @@ struct ChatView: View {
                 chatService.setActiveChat(nil)
             }
         }
+    }
+
+    private func groupSenderName(for message: Message) -> String? {
+        guard chat.kind == .group, !message.isFromMe else { return nil }
+        return chatService.peerDisplayName(for: message.senderUUID)
     }
 
     private var offlineBanner: some View {
