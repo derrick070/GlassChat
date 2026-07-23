@@ -42,6 +42,52 @@ final class WireFrameTests: XCTestCase {
         XCTAssertEqual(decoded.ackedMessageID, acked)
     }
 
+    func testImageOfferRoundTrip() throws {
+        let messageID = UUID()
+        let chatID = UUID()
+        let sender = UUID()
+        let thumb = Data(repeating: 1, count: 64)
+        let key = Data(repeating: 2, count: 32)
+        let frame = WireFrame.imageOffer(
+            senderUUID: sender,
+            messageID: messageID,
+            chatID: chatID,
+            text: "Photo",
+            sentAt: Date(timeIntervalSince1970: 1_700_000_000),
+            sequence: 9,
+            blobIDHex: "abc123",
+            blobKeyData: key,
+            mimeType: "image/heic",
+            byteCount: 12_000,
+            chunkCount: 6,
+            width: 800,
+            height: 600,
+            thumbnailData: thumb
+        )
+        let decoded = try WireFrame.decode(from: try frame.encode())
+        XCTAssertEqual(decoded.kind, .imageOffer)
+        XCTAssertEqual(decoded.blobIDHex, "abc123")
+        XCTAssertEqual(decoded.blobKeyData, key)
+        XCTAssertEqual(decoded.thumbnailData, thumb)
+        XCTAssertEqual(decoded.chunkCount, 6)
+        XCTAssertEqual(decoded.width, 800)
+    }
+
+    func testBlobChunkRoundTrip() throws {
+        let data = Data(repeating: 9, count: 128)
+        let frame = WireFrame.blobChunk(
+            senderUUID: UUID(),
+            blobIDHex: "deadbeef",
+            chunkIndex: 2,
+            chunkCount: 10,
+            chunkData: data
+        )
+        let decoded = try WireFrame.decode(from: try frame.encode())
+        XCTAssertEqual(decoded.kind, .blobChunk)
+        XCTAssertEqual(decoded.chunkIndex, 2)
+        XCTAssertEqual(decoded.chunkData, data)
+    }
+
     func testDeterministicDirectChatID() {
         let a = UUID()
         let b = UUID()

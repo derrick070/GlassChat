@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct ChatView: View {
     @Environment(ChatService.self) private var chatService
@@ -10,6 +11,8 @@ struct ChatView: View {
 
     @State private var draft = ""
     @State private var showDeleteConfirm = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var isSendingImage = false
     @FocusState private var composerFocused: Bool
 
     private var sortedMessages: [Message] {
@@ -37,9 +40,13 @@ struct ChatView: View {
                         ForEach(sortedMessages, id: \.id) { message in
                             MessageBubble(
                                 message: message,
-                                senderName: groupSenderName(for: message)
+                                senderName: groupSenderName(for: message),
+                                progress: message.blobIDHex.flatMap { chatService.mediaProgress[$0] },
+                                imageData: message.isImage ? chatService.imageData(for: message) : nil
                             ) {
                                 chatService.retry(message)
+                            } onRetryMedia: {
+                                chatService.retryMediaFetch(message)
                             }
                             .id(message.id)
                         }
@@ -106,6 +113,20 @@ struct ChatView: View {
                 chatService.setActiveChat(nil)
             }
         }
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            Task {
+                isSendingImage = true
+                defer {
+                    isSendingImage = false
+                    photoItem = nil
+                }
+                if let transferred = try? await item.loadTransferable(type: TransferableImageData.self) {
+                    chatService.send(imageData: transferred.data, caption: draft, in: chat)
+                    draft = ""
+                }
+            }
+        }
     }
 
     private func groupSenderName(for message: Message) -> String? {
@@ -127,6 +148,15 @@ struct ChatView: View {
 
     private var composer: some View {
         HStack(spacing: 10) {
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Image(systemName: "photo")
+                    .font(.system(size: 22))
+                    .foregroundStyle(GlassTheme.accent)
+                    .frame(width: 36, height: 36)
+            }
+            .disabled(isSendingImage)
+            .accessibilityLabel("Send photo")
+
             TextField("Message", text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...5)
@@ -152,5 +182,12 @@ struct ChatView: View {
         .padding(.horizontal, GlassTheme.spacing)
         .padding(.vertical, 10)
         .background(.clear)
+        .overlay {
+            if isSendingImage {
+                ProgressView()
+                    .padding(.trailing, 56)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
     }
 }

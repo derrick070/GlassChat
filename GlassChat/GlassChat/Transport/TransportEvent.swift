@@ -10,4 +10,5 @@ enum TransportEvent: Sendable {
     case peerConnected(ConnectedPeer)
     case peerDisconnected(UUID)
     case frameReceived(WireFrame, from: UUID)
+    case resourceReceived(name: String, localURL: URL, from: UUID)
 }

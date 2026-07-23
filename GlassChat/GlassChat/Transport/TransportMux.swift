@@ -87,7 +87,7 @@ final class TransportMux: ChatTransport {
 
         for destination in peerUUIDs {
             do {
-                try sendSealed(frame: frame, to: destination, dedupeKey: dedupeKey)
+                try sendSealed(frame: frame, to: destination, dedupeKey: dedupeKey, persist: true, allowFlood: true)
                 anyAccepted = true
             } catch {
                 lastError = error
@@ -95,6 +95,22 @@ final class TransportMux: ChatTransport {
         }
 
         guard anyAccepted else { throw lastError }
+    }
+
+    func sendDirect(_ frame: WireFrame, to peerUUID: UUID) throws {
+        try sendSealed(frame: frame, to: peerUUID, dedupeKey: nil, persist: false, allowFlood: false)
+    }
+
+    func hasDirectLink(to uuid: UUID) -> Bool {
+        multipeer.connectedLinkUUIDs.contains(uuid) || ble.connectedLinkUUIDs.contains(uuid)
+    }
+
+    func hasMultipeerLink(to uuid: UUID) -> Bool {
+        multipeer.connectedLinkUUIDs.contains(uuid)
+    }
+
+    func sendResource(at url: URL, withName name: String, to peerUUID: UUID) throws {
+        try multipeer.sendResource(at: url, withName: name, to: peerUUID)
     }
 
     // MARK: - Private
@@ -126,6 +142,8 @@ final class TransportMux: ChatTransport {
             refreshOnlinePeers()
         case .dataReceived(let data, let from):
             await onData(data, from: from)
+        case .resourceReceived(let name, let localURL, let from):
+            eventContinuation.yield(.resourceReceived(name: name, localURL: localURL, from: from))
         }
     }
 
@@ -214,7 +232,13 @@ final class TransportMux: ChatTransport {
         }
     }
 
-    private func sendSealed(frame: WireFrame, to destination: UUID, dedupeKey: String?) throws {
+    private func sendSealed(
+        frame: WireFrame,
+        to destination: UUID,
+        dedupeKey: String?,
+        persist: Bool,
+        allowFlood: Bool
+    ) throws {
         guard let theirKey = publicKeys[destination] else {
             throw TransportError.missingPeerKey
         }
@@ -234,7 +258,7 @@ final class TransportMux: ChatTransport {
             sourceUUID: identity.peerUUID,
             destinationUUID: destination,
             ciphertext: ciphertext,
-            ttl: MeshRouter.maxTTL
+            ttl: allowFlood ? MeshRouter.maxTTL : 1
         )
         packet.packetID = packetID
         router.noteSent(packetID)
@@ -245,19 +269,19 @@ final class TransportMux: ChatTransport {
         if directLinks.contains(destination) {
             try sendOnAnyLink(encoded, to: destination)
             sentDirect = true
-        } else if !directLinks.isEmpty {
+        } else if allowFlood, !directLinks.isEmpty {
             broadcast(encoded, excluding: nil)
             sentDirect = true
         }
 
         let destinationDirect = directLinks.contains(destination)
-        let skipPersist = frame.kind == .ack && destinationDirect
+        let skipPersist = !persist || (frame.kind == .ack && destinationDirect)
         if !skipPersist {
             store.persist(packet, encoded: encoded)
         }
 
-        if !sentDirect {
-            // No links — stored for later; ChatService treats as accepted pending path.
+        if !sentDirect, !persist {
+            throw TransportError.noConnectedPeers
         }
     }
 

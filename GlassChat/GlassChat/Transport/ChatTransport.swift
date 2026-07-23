@@ -14,6 +14,11 @@ protocol ChatTransport: AnyObject {
     func stop()
     func refreshDiscovery()
     func send(_ frame: WireFrame, to peerUUIDs: [UUID], dedupeKey: String?) throws
+    /// Direct sealed send — no mesh flood, no MeshStore persist. For blob data plane.
+    func sendDirect(_ frame: WireFrame, to peerUUID: UUID) throws
+    func hasDirectLink(to uuid: UUID) -> Bool
+    func hasMultipeerLink(to uuid: UUID) -> Bool
+    func sendResource(at url: URL, withName name: String, to peerUUID: UUID) throws
     func isConnected(_ uuid: UUID) -> Bool
     func updateDisplayName(_ name: String)
 }
@@ -29,6 +34,7 @@ enum LinkEvent: Sendable {
     case linkDown(UUID)
     case dataReceived(Data, from: UUID)
     case discoveredName(String)
+    case resourceReceived(name: String, localURL: URL, from: UUID)
 }
 
 /// Low-level link that carries opaque `MeshPacket` bytes.

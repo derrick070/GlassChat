@@ -39,6 +39,13 @@ UI (SwiftUI) → ChatService → MultipeerTransport + SwiftData
 - Event-driven outbox flush on peer connect + foreground
 - Per-member ACKs for groups (weakest-member delivery status)
 
+## Media (images)
+
+Control plane: `imageOffer` (thumbnail + blob metadata + symmetric key) rides the existing sealed flood/store-and-forward path.
+Data plane: content-addressed sealed blobs in `BlobStore` (separate from `MeshStore`).
+- Direct Multipeer: `MCSession.sendResource`
+- BLE / multi-hop: receiver-pull `blobRequest` / `blobChunk` over direct sealed frames (not flooded)
+
 ## Explicit non-goals
 
-Media, read receipts, mesh relaying, groups > 8, custom E2E crypto beyond MC encryption, any server.
+Read receipts, groups > 8, any server.
