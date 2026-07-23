@@ -67,6 +67,15 @@ struct ChatView: View {
                 }
             }
 
+            if let error = chatService.lastMediaError {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, GlassTheme.spacing)
+                    .padding(.bottom, 4)
+                    .onTapGesture { chatService.clearMediaError() }
+            }
+
             composer
         }
         .navigationTitle(chat.name)

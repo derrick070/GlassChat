@@ -94,12 +94,19 @@ struct MessageBubble: View {
                     )
             }
 
-            if !message.isFromMe, message.mediaTransfer == .failed {
+            if !message.isFromMe, message.mediaTransfer == .failed || message.mediaTransfer == .pending {
                 Button {
                     onRetryMedia?()
                 } label: {
-                    Label("Retry download", systemImage: "arrow.clockwise")
-                        .font(.caption)
+                    Label(
+                        message.mediaTransfer == .pending
+                            ? "Waiting for nearby link"
+                            : "Retry download",
+                        systemImage: message.mediaTransfer == .pending
+                            ? "antenna.radiowaves.left.and.right"
+                            : "arrow.clockwise"
+                    )
+                    .font(.caption)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(GlassTheme.accent)
@@ -111,9 +118,14 @@ struct MessageBubble: View {
         ZStack {
             Color.black.opacity(0.35)
             VStack(spacing: 8) {
-                ProgressView(value: progress ?? 0)
-                    .progressViewStyle(.circular)
-                    .tint(.white)
+                if message.mediaTransfer == .pending {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .foregroundStyle(.white)
+                } else {
+                    ProgressView(value: progress ?? 0)
+                        .progressViewStyle(.circular)
+                        .tint(.white)
+                }
                 Text(progressLabel)
                     .font(.caption2)
                     .foregroundStyle(.white)
@@ -122,10 +134,19 @@ struct MessageBubble: View {
     }
 
     private var progressLabel: String {
-        let value = progress ?? 0
-        if value <= 0 { return "Waiting…" }
-        if value >= 1 { return "Ready" }
-        return "\(Int(value * 100))%"
+        switch message.mediaTransfer {
+        case .pending:
+            return "Need direct link"
+        case .failed:
+            return "Failed"
+        case .ready:
+            return "Ready"
+        case .none, .transferring:
+            let value = progress ?? 0
+            if value <= 0 { return "Downloading…" }
+            if value >= 1 { return "Ready" }
+            return "\(Int(value * 100))%"
+        }
     }
 
     @ViewBuilder

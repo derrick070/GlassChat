@@ -94,28 +94,37 @@ final class BlobStore {
             options: [.skipsHiddenFiles]
         ) else { return }
 
-        struct Entry {
-            var url: URL
+        struct Pair {
+            var blobID: String
             var modified: Date
             var size: Int
         }
 
-        var entries: [Entry] = items.compactMap { url in
-            let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-            return Entry(
-                url: url,
-                modified: values?.contentModificationDate ?? .distantPast,
-                size: values?.fileSize ?? 0
-            )
+        var pairs: [String: Pair] = [:]
+        for fileURL in items {
+            let name = fileURL.lastPathComponent
+            let blobID = name.hasSuffix(".plain") ? String(name.dropLast(6)) : name
+            let values = try? fileURL.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+            let modified = values?.contentModificationDate ?? .distantPast
+            let size = values?.fileSize ?? 0
+            if var existing = pairs[blobID] {
+                existing.size += size
+                existing.modified = max(existing.modified, modified)
+                pairs[blobID] = existing
+            } else {
+                pairs[blobID] = Pair(blobID: blobID, modified: modified, size: size)
+            }
         }
-        var total = entries.reduce(0) { $0 + $1.size }
+
+        var ordered = Array(pairs.values)
+        var total = ordered.reduce(0) { $0 + $1.size }
         guard total > MediaConstants.blobStoreQuotaBytes else { return }
 
-        entries.sort { $0.modified < $1.modified }
-        while total > MediaConstants.blobStoreQuotaBytes, let oldest = entries.first {
-            try? fileManager.removeItem(at: oldest.url)
+        ordered.sort { $0.modified < $1.modified }
+        while total > MediaConstants.blobStoreQuotaBytes, let oldest = ordered.first {
+            remove(oldest.blobID)
             total -= oldest.size
-            entries.removeFirst()
+            ordered.removeFirst()
         }
     }
 }

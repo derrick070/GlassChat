@@ -6,7 +6,7 @@ Fully offline peer-to-peer messaging for iOS. 1:1 and group text over Multipeer 
 
 - **1:1 messages** — discover nearby peers and chat instantly
 - **Group messages** — up to 8 members (Multipeer Connectivity limit)
-- **Photos over mesh** — thumbnail-first offers; Multipeer resource fast path + BLE chunk pull
+- **Photos over mesh** — thumbnail-first offers (multi-hop OK); full image via Multipeer resource or direct BLE chunk pull
 - **Reliable delivery** — ACK + outbox retry when peers reconnect
 - **Lightweight** — SwiftUI + SwiftData + Multipeer/BLE only (no third-party deps)
 - **Liquid glass UI** — iOS 26 `glassEffect` with Material fallback for older devices

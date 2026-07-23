@@ -31,4 +31,33 @@ final class BlobCryptoTests: XCTestCase {
         let wrongKey = Data(repeating: 7, count: 32)
         XCTAssertThrowsError(try BlobCrypto.open(sealed.ciphertext, keyData: wrongKey))
     }
+
+    func testOfferValidationRejectsGarbage() {
+        let key = Data(repeating: 1, count: 32)
+        let thumb = Data(repeating: 2, count: 64)
+        XCTAssertTrue(
+            MediaTransferService.isValidOffer(
+                blobKeyData: key,
+                byteCount: 4096,
+                chunkCount: BlobCrypto.chunkCount(forByteCount: 4096),
+                thumbnailData: thumb
+            )
+        )
+        XCTAssertFalse(
+            MediaTransferService.isValidOffer(
+                blobKeyData: Data(repeating: 1, count: 16),
+                byteCount: 4096,
+                chunkCount: 2,
+                thumbnailData: thumb
+            )
+        )
+        XCTAssertFalse(
+            MediaTransferService.isValidOffer(
+                blobKeyData: key,
+                byteCount: 4096,
+                chunkCount: 1_000_000,
+                thumbnailData: thumb
+            )
+        )
+    }
 }
