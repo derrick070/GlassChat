@@ -45,6 +45,14 @@
 		A1000000000000000000000B /* BLETransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* BLETransport.swift */; };
 		A1000000000000000000000C /* EnvelopeCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* EnvelopeCryptoTests.swift */; };
 		A1000000000000000000000D /* MeshPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* MeshPacketTests.swift */; };
+		A30000000000000000000001 /* MediaConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000011 /* MediaConstants.swift */; };
+		A30000000000000000000002 /* ImageCompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000012 /* ImageCompressor.swift */; };
+		A30000000000000000000003 /* BlobStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000013 /* BlobStore.swift */; };
+		A30000000000000000000004 /* MediaTransferService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000014 /* MediaTransferService.swift */; };
+		A30000000000000000000005 /* TransferableImageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000015 /* TransferableImageData.swift */; };
+		A30000000000000000000006 /* BlobCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000016 /* BlobCrypto.swift */; };
+		A30000000000000000000007 /* BlobCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000017 /* BlobCryptoTests.swift */; };
+		A30000000000000000000008 /* BlobStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000018 /* BlobStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -99,6 +107,14 @@
 		A1000000000000000000001B /* BLETransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLETransport.swift; sourceTree = "<group>"; };
 		A1000000000000000000001C /* EnvelopeCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeCryptoTests.swift; sourceTree = "<group>"; };
 		A1000000000000000000001D /* MeshPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshPacketTests.swift; sourceTree = "<group>"; };
+		A30000000000000000000011 /* MediaConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaConstants.swift; sourceTree = "<group>"; };
+		A30000000000000000000012 /* ImageCompressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCompressor.swift; sourceTree = "<group>"; };
+		A30000000000000000000013 /* BlobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobStore.swift; sourceTree = "<group>"; };
+		A30000000000000000000014 /* MediaTransferService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTransferService.swift; sourceTree = "<group>"; };
+		A30000000000000000000015 /* TransferableImageData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferableImageData.swift; sourceTree = "<group>"; };
+		A30000000000000000000016 /* BlobCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobCrypto.swift; sourceTree = "<group>"; };
+		A30000000000000000000017 /* BlobCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobCryptoTests.swift; sourceTree = "<group>"; };
+		A30000000000000000000018 /* BlobStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -147,6 +163,8 @@
 				AB09F722F8A0476ACA95938E /* WireFrameTests.swift */,
 				A1000000000000000000001C /* EnvelopeCryptoTests.swift */,
 				A1000000000000000000001D /* MeshPacketTests.swift */,
+				A30000000000000000000017 /* BlobCryptoTests.swift */,
+				A30000000000000000000018 /* BlobStoreTests.swift */,
 			);
 			path = GlassChatTests;
 			sourceTree = "<group>";
@@ -188,12 +206,25 @@
 				D1471958BC7A688936997D72 /* Transport */,
 				A20000000000000000000001 /* Mesh */,
 				A20000000000000000000002 /* Crypto */,
+				A30000000000000000000010 /* Media */,
 				DBCDD2ABB93BCB8D2B4E0351 /* Views */,
 				32BB636196F91ED59D7A4919 /* Assets.xcassets */,
 				75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */,
 				CAF9B6B99962BF5C22648242 /* Info.plist */,
 			);
 			path = GlassChat;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000010 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				A30000000000000000000011 /* MediaConstants.swift */,
+				A30000000000000000000012 /* ImageCompressor.swift */,
+				A30000000000000000000013 /* BlobStore.swift */,
+				A30000000000000000000014 /* MediaTransferService.swift */,
+				A30000000000000000000015 /* TransferableImageData.swift */,
+			);
+			path = Media;
 			sourceTree = "<group>";
 		};
 		D1471958BC7A688936997D72 /* Transport */ = {
@@ -236,6 +267,7 @@
 			children = (
 				A10000000000000000000013 /* CryptoIdentity.swift */,
 				A10000000000000000000014 /* EnvelopeCrypto.swift */,
+				A30000000000000000000016 /* BlobCrypto.swift */,
 			);
 			path = Crypto;
 			sourceTree = "<group>";
@@ -350,6 +382,8 @@
 				1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */,
 				A1000000000000000000000C /* EnvelopeCryptoTests.swift in Sources */,
 				A1000000000000000000000D /* MeshPacketTests.swift in Sources */,
+				A30000000000000000000007 /* BlobCryptoTests.swift in Sources */,
+				A30000000000000000000008 /* BlobStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -389,6 +423,12 @@
 				A10000000000000000000009 /* MeshRouter.swift in Sources */,
 				A1000000000000000000000A /* BLEConstants.swift in Sources */,
 				A1000000000000000000000B /* BLETransport.swift in Sources */,
+				A30000000000000000000001 /* MediaConstants.swift in Sources */,
+				A30000000000000000000002 /* ImageCompressor.swift in Sources */,
+				A30000000000000000000003 /* BlobStore.swift in Sources */,
+				A30000000000000000000004 /* MediaTransferService.swift in Sources */,
+				A30000000000000000000005 /* TransferableImageData.swift in Sources */,
+				A30000000000000000000006 /* BlobCrypto.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

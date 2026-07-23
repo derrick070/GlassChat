@@ -9,14 +9,30 @@ import UIKit
 final class ChatService {
     private let modelContext: ModelContext
     private let transport: TransportMux
+    private let mediaTransfer: MediaTransferService
+    private let blobStore: BlobStore
     private var eventTask: Task<Void, Never>?
     private var sequenceStore: [String: Int64] = [:]
+    private var imageDataCache: [String: Data] = [:]
+    private let imageDataCacheLimit = 32
+    private var blobMessageCache: [String: UUID] = [:]
+    private var chunkSaveCounters: [String: Int] = [:]
     /// Chat currently on screen — incoming messages here do not bump unread.
     private(set) var activeChatID: UUID?
+    /// Observed transfer progress blobIDHex → 0...1
+    private(set) var mediaProgress: [String: Double] = [:]
+    /// Last send/media error for light UI feedback.
+    private(set) var lastMediaError: String?
 
-    init(modelContext: ModelContext, transport: TransportMux) {
+    init(
+        modelContext: ModelContext,
+        transport: TransportMux,
+        blobStore: BlobStore = .shared
+    ) {
         self.modelContext = modelContext
         self.transport = transport
+        self.blobStore = blobStore
+        self.mediaTransfer = MediaTransferService(transport: transport, blobStore: blobStore)
         // Subscribe once for the app-lifetime of this service. AsyncStream is
         // single-consumer; cancelling the iterator finishes the stream forever.
         // Intentionally retains self for the process lifetime (singleton).
@@ -25,6 +41,12 @@ final class ChatService {
             for await event in self.transport.events {
                 await self.handle(event)
             }
+        }
+        mediaTransfer.onFetchTerminal = { [weak self] blobIDHex, status in
+            self?.applyFetchTerminal(blobIDHex: blobIDHex, status: status)
+        }
+        transport.resourceSendFailedHandler = { [weak self] peerUUID, name in
+            self?.mediaTransfer.noteResourceSendFailed(name: name, to: peerUUID)
         }
     }
 
@@ -53,6 +75,7 @@ final class ChatService {
                 }
             }
             flushOutbox()
+            resumePendingMediaFetches()
             Task { await NotificationService.shared.setBadge(totalUnreadCount()) }
         case .inactive, .background:
             // Ask iOS for extra runtime so existing Multipeer sessions last longer.
@@ -201,11 +224,109 @@ final class ChatService {
         transmit(message: message, chat: chat)
     }
 
+    func send(imageData: Data, caption: String = "", in chat: Chat) {
+        prepareNotifications()
+        let preferMC = chat.memberUUIDs
+            .filter { $0 != transport.peerUUID }
+            .contains { transport.hasMultipeerLink(to: $0) }
+        let maxBytes = preferMC ? MediaConstants.multipeerMaxBytes : MediaConstants.bleMaxBytes
+        let captionTrimmed = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let chatRef = chat
+
+        Task { @MainActor in
+            do {
+                let compressed = try await Task.detached(priority: .userInitiated) {
+                    try ImageCompressor.prepare(imageData: imageData, maxBytes: maxBytes)
+                }.value
+                let sealed = try BlobCrypto.seal(compressed.imageData)
+                try blobStore.putCiphertext(sealed.ciphertext, blobIDHex: sealed.blobIDHex)
+                try blobStore.putPlaintext(compressed.imageData, blobIDHex: sealed.blobIDHex)
+                let chunkCount = BlobCrypto.chunkCount(forByteCount: sealed.ciphertext.count)
+
+                let messageID = UUID()
+                let sequence = nextSequence(for: chatRef.id)
+                let message = Message(
+                    id: messageID,
+                    senderUUID: transport.peerUUID,
+                    text: captionTrimmed.isEmpty ? "Photo" : captionTrimmed,
+                    sequence: sequence,
+                    status: .pending,
+                    isFromMe: true,
+                    chat: chatRef,
+                    mediaKind: .image,
+                    blobIDHex: sealed.blobIDHex,
+                    blobKeyData: sealed.keyData,
+                    thumbnailData: compressed.thumbnailData,
+                    mediaMime: compressed.mimeType,
+                    mediaByteCount: sealed.ciphertext.count,
+                    mediaWidth: compressed.width,
+                    mediaHeight: compressed.height,
+                    chunkCount: chunkCount,
+                    mediaTransfer: .ready
+                )
+                chatRef.messages.append(message)
+                chatRef.lastMessageAt = message.sentAt
+                modelContext.insert(message)
+                try? modelContext.save()
+                cacheImageData(compressed.imageData, for: sealed.blobIDHex)
+                blobMessageCache[sealed.blobIDHex] = messageID
+                mediaProgress[sealed.blobIDHex] = 1
+                lastMediaError = nil
+                transmit(message: message, chat: chatRef)
+            } catch {
+                lastMediaError = "Couldn't send photo. Try a smaller image."
+                print("GlassChat: image prepare failed — \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func clearMediaError() {
+        lastMediaError = nil
+    }
+
     func retry(_ message: Message) {
         guard let chat = message.chat else { return }
         message.status = .pending
         try? modelContext.save()
         transmit(message: message, chat: chat)
+    }
+
+    func retryMediaFetch(_ message: Message) {
+        guard message.isImage,
+              let blobID = message.blobIDHex,
+              message.chunkCount > 0 else { return }
+        mediaTransfer.resetFetch(blobIDHex: blobID)
+        beginFetch(for: message)
+        try? modelContext.save()
+    }
+
+    func imageData(for message: Message) -> Data? {
+        guard let blobID = message.blobIDHex else { return nil }
+        if let cached = imageDataCache[blobID] { return cached }
+        if let plain = blobStore.plaintext(for: blobID) {
+            cacheImageData(plain, for: blobID)
+            return plain
+        }
+        guard let key = message.blobKeyData,
+              let ciphertext = blobStore.ciphertext(for: blobID),
+              BlobCrypto.verifyBlobID(ciphertext, expectedHex: blobID),
+              let plain = try? BlobCrypto.open(ciphertext, keyData: key) else {
+            return nil
+        }
+        try? blobStore.putPlaintext(plain, blobIDHex: blobID)
+        cacheImageData(plain, for: blobID)
+        return plain
+    }
+
+    private func cacheImageData(_ data: Data, for blobIDHex: String) {
+        imageDataCache[blobIDHex] = data
+        while imageDataCache.count > imageDataCacheLimit {
+            if let first = imageDataCache.keys.first {
+                imageDataCache.removeValue(forKey: first)
+            } else {
+                break
+            }
+        }
     }
 
     func markChatRead(_ chat: Chat) {
@@ -236,11 +357,16 @@ final class ChatService {
         switch event {
         case .peerConnected(let peer):
             upsertPeer(uuid: peer.uuid, displayName: peer.displayName)
+            mediaTransfer.clearPushDedupe(for: peer.uuid)
             flushOutbox(for: peer.uuid)
+            pushOutboundBlobs(to: peer.uuid)
+            resumePendingMediaFetches(from: peer.uuid)
         case .peerDisconnected:
             break
         case .frameReceived(let frame, let from):
             handle(frame: frame, from: from)
+        case .resourceReceived(let name, let localURL, let from):
+            handleResource(name: name, localURL: localURL, from: from)
         }
     }
 
@@ -252,7 +378,34 @@ final class ChatService {
             handleIncomingMessage(frame, from: sender)
         case .ack:
             handleAck(frame, from: sender)
+        case .imageOffer:
+            handleIncomingImageOffer(frame, from: sender)
+        case .blobRequest:
+            mediaTransfer.handleBlobRequest(
+                frame,
+                from: sender,
+                allowedBlobIDs: outboundBlobIDs(for: sender)
+            )
+        case .blobChunk:
+            handleBlobChunk(frame, from: sender)
         }
+    }
+
+    private func applyFetchTerminal(blobIDHex: String, status: MediaTransferStatus) {
+        guard let message = fetchMessage(blobIDHex: blobIDHex) else { return }
+        message.mediaTransfer = status
+        if status == .ready {
+            mediaProgress[blobIDHex] = 1
+            if let data = blobStore.plaintext(for: blobIDHex) {
+                cacheImageData(data, for: blobIDHex)
+            }
+        } else if status == .failed {
+            mediaProgress[blobIDHex] = mediaTransfer.progress(
+                for: blobIDHex,
+                chunkCount: message.chunkCount
+            )
+        }
+        try? modelContext.save()
     }
 
     #if DEBUG
@@ -307,23 +460,170 @@ final class ChatService {
         upsertPeer(uuid: sender, displayName: senderName)
         try? modelContext.save()
 
-        let title: String
-        let body: String
-        if chat.kind == .group {
-            title = chat.name
-            body = "\(senderName): \(text)"
-        } else {
-            title = senderName
-            body = text
-        }
-        NotificationService.shared.notifyNewMessage(
+        notifyIncoming(
             messageID: messageID,
-            chatID: chat.id,
-            title: title,
-            body: body,
-            suppressBecauseChatIsOpen: chatIsOpen,
-            unreadTotal: totalUnreadCount()
+            chat: chat,
+            senderName: senderName,
+            body: text,
+            chatIsOpen: chatIsOpen
         )
+    }
+
+    private func handleIncomingImageOffer(_ frame: WireFrame, from sender: UUID) {
+        guard let messageID = frame.messageID,
+              let chatID = frame.chatID,
+              let sentAt = frame.sentAt,
+              let sequence = frame.sequence,
+              let rawBlobID = frame.blobIDHex,
+              let blobKeyData = frame.blobKeyData,
+              let mimeType = frame.mimeType,
+              let byteCount = frame.byteCount,
+              let chunkCount = frame.chunkCount,
+              let width = frame.width,
+              let height = frame.height,
+              let thumbnailData = frame.thumbnailData else { return }
+        let blobIDHex = rawBlobID.lowercased()
+        guard MediaTransferService.isValidOffer(
+            blobIDHex: blobIDHex,
+            blobKeyData: blobKeyData,
+            byteCount: byteCount,
+            chunkCount: chunkCount,
+            thumbnailData: thumbnailData
+        ) else {
+            print("GlassChat: dropping invalid imageOffer from \(sender)")
+            return
+        }
+
+        sendAck(for: messageID, to: sender)
+
+        if messageExists(id: messageID) {
+            if let existing = fetchMessage(id: messageID),
+               existing.mediaTransfer != .ready {
+                beginFetch(for: existing)
+            }
+            return
+        }
+
+        prepareNotifications()
+
+        let chat = materializeChat(
+            chatID: chatID,
+            groupInfo: frame.groupInfo,
+            senderUUID: sender,
+            senderName: transport.connectedPeers.first(where: { $0.uuid == sender })?.displayName
+        )
+
+        let caption = frame.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let alreadyHave = blobStore.hasPlaintext(blobIDHex)
+        let initialTransfer: MediaTransferStatus
+        if alreadyHave {
+            initialTransfer = .ready
+        } else if transport.hasDirectLink(to: sender) {
+            initialTransfer = .transferring
+        } else {
+            initialTransfer = .pending
+        }
+        let message = Message(
+            id: messageID,
+            senderUUID: sender,
+            text: (caption?.isEmpty == false) ? caption! : "Photo",
+            sentAt: sentAt,
+            sequence: sequence,
+            status: .delivered,
+            isFromMe: false,
+            chat: chat,
+            mediaKind: .image,
+            blobIDHex: blobIDHex,
+            blobKeyData: blobKeyData,
+            thumbnailData: thumbnailData,
+            mediaMime: mimeType,
+            mediaByteCount: byteCount,
+            mediaWidth: width,
+            mediaHeight: height,
+            chunkCount: chunkCount,
+            mediaTransfer: initialTransfer
+        )
+        chat.messages.append(message)
+        chat.lastMessageAt = sentAt
+        let chatIsOpen = activeChatID == chat.id
+        if !chatIsOpen {
+            chat.unreadCount += 1
+        }
+        modelContext.insert(message)
+        blobMessageCache[blobIDHex] = messageID
+        let senderName = transport.connectedPeers.first(where: { $0.uuid == sender })?.displayName
+            ?? chat.name
+        upsertPeer(uuid: sender, displayName: senderName)
+        try? modelContext.save()
+
+        notifyIncoming(
+            messageID: messageID,
+            chat: chat,
+            senderName: senderName,
+            body: "Photo",
+            chatIsOpen: chatIsOpen
+        )
+
+        if alreadyHave {
+            mediaProgress[blobIDHex] = 1
+        } else {
+            beginFetch(for: message)
+        }
+    }
+
+    private func handleBlobChunk(_ frame: WireFrame, from sender: UUID) {
+        guard let blobIDHex = frame.blobIDHex?.lowercased() else { return }
+        guard let message = fetchMessage(blobIDHex: blobIDHex),
+              let key = message.blobKeyData else { return }
+        guard message.mediaTransfer != .ready else { return }
+
+        if let plain = mediaTransfer.handleBlobChunk(
+            frame,
+            from: sender,
+            expectedSender: message.senderUUID,
+            keyData: key,
+            expectedChunkCount: message.chunkCount
+        ) {
+            message.mediaTransfer = .ready
+            mediaProgress[blobIDHex] = 1
+            cacheImageData(plain, for: blobIDHex)
+            chunkSaveCounters.removeValue(forKey: blobIDHex)
+            try? modelContext.save()
+        } else {
+            message.mediaTransfer = .transferring
+            refreshMediaProgress(blobIDHex: blobIDHex, chunkCount: message.chunkCount)
+            let count = (chunkSaveCounters[blobIDHex] ?? 0) + 1
+            chunkSaveCounters[blobIDHex] = count
+            if count % 16 == 0 {
+                try? modelContext.save()
+            }
+        }
+    }
+
+    private func handleResource(name: String, localURL: URL, from sender: UUID) {
+        guard name.hasPrefix(MediaConstants.resourceNamePrefix) else {
+            try? FileManager.default.removeItem(at: localURL)
+            return
+        }
+        let blobIDHex = String(name.dropFirst(MediaConstants.resourceNamePrefix.count)).lowercased()
+        guard let message = fetchMessage(blobIDHex: blobIDHex),
+              let key = message.blobKeyData else {
+            try? FileManager.default.removeItem(at: localURL)
+            return
+        }
+        if let plain = mediaTransfer.handleResource(
+            name: name,
+            localURL: localURL,
+            from: sender,
+            expectedSender: message.senderUUID,
+            keyData: key,
+            expectedBlobID: blobIDHex
+        ) {
+            message.mediaTransfer = .ready
+            mediaProgress[blobIDHex] = 1
+            cacheImageData(plain, for: blobIDHex)
+            try? modelContext.save()
+        }
     }
 
     private func handleAck(_ frame: WireFrame, from sender: UUID) {
@@ -342,6 +642,10 @@ final class ChatService {
         } else {
             message.status = .delivered
         }
+        // Offer ACKed — at most one Multipeer push per peer/blob (deduped in MediaTransferService).
+        if message.isImage, let blobID = message.blobIDHex {
+            mediaTransfer.pushIfPossible(blobIDHex: blobID, to: sender)
+        }
         try? modelContext.save()
     }
 
@@ -356,15 +660,40 @@ final class ChatService {
             ? GroupInfo(name: chat.name, memberUUIDs: chat.memberUUIDs)
             : nil
 
-        let frame = WireFrame.message(
-            senderUUID: transport.peerUUID,
-            messageID: message.id,
-            chatID: chat.id,
-            text: message.text,
-            sentAt: message.sentAt,
-            sequence: message.sequence,
-            groupInfo: groupInfo
-        )
+        let frame: WireFrame
+        if message.isImage,
+           let blobID = message.blobIDHex,
+           let key = message.blobKeyData,
+           let mime = message.mediaMime,
+           let thumb = message.thumbnailData {
+            frame = WireFrame.imageOffer(
+                senderUUID: transport.peerUUID,
+                messageID: message.id,
+                chatID: chat.id,
+                text: message.text,
+                sentAt: message.sentAt,
+                sequence: message.sequence,
+                blobIDHex: blobID,
+                blobKeyData: key,
+                mimeType: mime,
+                byteCount: message.mediaByteCount,
+                chunkCount: message.chunkCount,
+                width: message.mediaWidth,
+                height: message.mediaHeight,
+                thumbnailData: thumb,
+                groupInfo: groupInfo
+            )
+        } else {
+            frame = WireFrame.message(
+                senderUUID: transport.peerUUID,
+                messageID: message.id,
+                chatID: chat.id,
+                text: message.text,
+                sentAt: message.sentAt,
+                sequence: message.sequence,
+                groupInfo: groupInfo
+            )
+        }
 
         do {
             try transport.send(frame, to: targets, dedupeKey: message.id.uuidString)
@@ -372,6 +701,11 @@ final class ChatService {
                 message.status = .sent
             }
             try? modelContext.save()
+            if message.isImage, let blobID = message.blobIDHex {
+                for peer in targets {
+                    mediaTransfer.pushIfPossible(blobIDHex: blobID, to: peer)
+                }
+            }
         } catch TransportError.noConnectedPeers, TransportError.missingPeerKey {
             message.status = .pending
             try? modelContext.save()
@@ -392,6 +726,109 @@ final class ChatService {
             .filter { $0 != transport.peerUUID }
             .filter { !message.ackedBy.contains($0) }
             .filter { transport.isConnected($0) }
+    }
+
+    private func pushOutboundBlobs(to peerUUID: UUID) {
+        // Only undelivered (or recently sent) outbound images — not the full history.
+        let descriptor = FetchDescriptor<Message>(
+            predicate: #Predicate {
+                $0.isFromMe
+                    && $0.mediaKindRaw == "image"
+                    && $0.statusRaw != "delivered"
+            }
+        )
+        guard let messages = try? modelContext.fetch(descriptor) else { return }
+        for message in messages {
+            guard let chat = message.chat,
+                  chat.memberUUIDs.contains(peerUUID),
+                  !message.ackedBy.contains(peerUUID),
+                  let blobID = message.blobIDHex else { continue }
+            mediaTransfer.pushIfPossible(blobIDHex: blobID, to: peerUUID)
+        }
+    }
+
+    private func resumePendingMediaFetches(from peerUUID: UUID? = nil) {
+        let descriptor = FetchDescriptor<Message>(
+            predicate: #Predicate {
+                !$0.isFromMe
+                    && $0.mediaKindRaw == "image"
+                    && $0.mediaTransferRaw != "ready"
+            }
+        )
+        guard let messages = try? modelContext.fetch(descriptor) else { return }
+        for message in messages {
+            if let peerUUID, message.senderUUID != peerUUID { continue }
+            beginFetch(for: message)
+        }
+        try? modelContext.save()
+    }
+
+    private func beginFetch(for message: Message) {
+        guard let blobID = message.blobIDHex,
+              let key = message.blobKeyData,
+              message.chunkCount > 0 else { return }
+        blobMessageCache[blobID] = message.id
+        if blobStore.hasPlaintext(blobID) {
+            message.mediaTransfer = .ready
+            mediaProgress[blobID] = 1
+            if let data = blobStore.plaintext(for: blobID) {
+                cacheImageData(data, for: blobID)
+            }
+            return
+        }
+        let started = mediaTransfer.startFetch(
+            blobIDHex: blobID,
+            chunkCount: message.chunkCount,
+            from: message.senderUUID,
+            keyData: key
+        )
+        message.mediaTransfer = started ? .transferring : .pending
+        refreshMediaProgress(blobIDHex: blobID, chunkCount: message.chunkCount)
+    }
+
+    private func outboundBlobIDs(for peerUUID: UUID) -> Set<String> {
+        let descriptor = FetchDescriptor<Message>(
+            predicate: #Predicate { $0.isFromMe && $0.mediaKindRaw == "image" }
+        )
+        guard let messages = try? modelContext.fetch(descriptor) else { return [] }
+        var ids = Set<String>()
+        for message in messages {
+            guard let chat = message.chat,
+                  chat.memberUUIDs.contains(peerUUID),
+                  let blobID = message.blobIDHex else { continue }
+            ids.insert(blobID.lowercased())
+        }
+        return ids
+    }
+
+    private func refreshMediaProgress(blobIDHex: String, chunkCount: Int) {
+        mediaProgress[blobIDHex] = mediaTransfer.progress(for: blobIDHex, chunkCount: chunkCount)
+    }
+
+    private func notifyIncoming(
+        messageID: UUID,
+        chat: Chat,
+        senderName: String,
+        body: String,
+        chatIsOpen: Bool
+    ) {
+        let title: String
+        let notifyBody: String
+        if chat.kind == .group {
+            title = chat.name
+            notifyBody = "\(senderName): \(body)"
+        } else {
+            title = senderName
+            notifyBody = body
+        }
+        NotificationService.shared.notifyNewMessage(
+            messageID: messageID,
+            chatID: chat.id,
+            title: title,
+            body: notifyBody,
+            suppressBecauseChatIsOpen: chatIsOpen,
+            unreadTotal: totalUnreadCount()
+        )
     }
 
     private func materializeChat(
@@ -432,6 +869,26 @@ final class ChatService {
     private func fetchChat(id: UUID) -> Chat? {
         let descriptor = FetchDescriptor<Chat>(predicate: #Predicate { $0.id == id })
         return try? modelContext.fetch(descriptor).first
+    }
+
+    private func fetchMessage(id: UUID) -> Message? {
+        let descriptor = FetchDescriptor<Message>(predicate: #Predicate { $0.id == id })
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func fetchMessage(blobIDHex: String) -> Message? {
+        let id = blobIDHex.lowercased()
+        if let messageID = blobMessageCache[id], let message = fetchMessage(id: messageID) {
+            return message
+        }
+        let descriptor = FetchDescriptor<Message>(
+            predicate: #Predicate { $0.blobIDHex == id }
+        )
+        let message = try? modelContext.fetch(descriptor).first
+        if let message {
+            blobMessageCache[id] = message.id
+        }
+        return message
     }
 
     private func messageExists(id: UUID) -> Bool {

@@ -80,6 +80,22 @@ final class MultipeerTransport: NSObject, LinkTransport {
         try? session.send(data, toPeers: targets, with: .reliable)
     }
 
+    /// Optional failure callback so the mux/media layer can clear push dedupe.
+    var onResourceSendFailed: ((UUID, String) -> Void)?
+
+    func sendResource(at url: URL, withName name: String, to peerUUID: UUID) throws {
+        guard let peer = uuidToMCPeer[peerUUID] else {
+            throw TransportError.noConnectedPeers
+        }
+        session.sendResource(at: url, withName: name, toPeer: peer) { [weak self] error in
+            guard let error else { return }
+            print("GlassChat: sendResource failed — \(error.localizedDescription)")
+            Task { @MainActor in
+                self?.onResourceSendFailed?(peerUUID, name)
+            }
+        }
+    }
+
     func updateDisplayName(_ name: String) {
         identity.updateDisplayName(name)
     }
@@ -237,7 +253,28 @@ extension MultipeerTransport: MCSessionDelegate {
         fromPeer peerID: MCPeerID,
         at localURL: URL?,
         withError error: Error?
-    ) {}
+    ) {
+        // MC deletes the temporary file when this method returns — copy synchronously.
+        guard error == nil, let localURL else { return }
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gc-resource-\(UUID().uuidString)")
+        do {
+            if FileManager.default.fileExists(atPath: dest.path) {
+                try FileManager.default.removeItem(at: dest)
+            }
+            try FileManager.default.copyItem(at: localURL, to: dest)
+        } catch {
+            print("GlassChat: resource copy failed — \(error.localizedDescription)")
+            return
+        }
+        Task { @MainActor in
+            guard let uuid = mcPeerToUUID[peerID] ?? discoveredUUIDByPeer[peerID] else {
+                try? FileManager.default.removeItem(at: dest)
+                return
+            }
+            linkContinuation.yield(.resourceReceived(name: resourceName, localURL: dest, from: uuid))
+        }
+    }
 }
 
 extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {

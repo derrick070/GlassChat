@@ -84,4 +84,42 @@ final class ChatServiceTests: XCTestCase {
         let chat = try context.fetch(FetchDescriptor<Chat>()).first
         XCTAssertEqual(chat?.unreadCount, 0)
     }
+
+    func testImageOfferInsertsThumbnailMessage() throws {
+        let (service, context, _) = try makeService()
+        let peerUUID = UUID()
+        let chatID = UUID.deterministic(
+            from: [service.localUUID.uuidString, peerUUID.uuidString].sorted().joined(separator: "|")
+        )
+        let messageID = UUID()
+        let thumb = Data(repeating: 4, count: 32)
+        let key = Data(repeating: 5, count: 32)
+        let blobID = String(repeating: "cd", count: 32)
+        let byteCount = 2048
+        let frame = WireFrame.imageOffer(
+            senderUUID: peerUUID,
+            messageID: messageID,
+            chatID: chatID,
+            text: "Photo",
+            sentAt: .now,
+            sequence: 1,
+            blobIDHex: blobID,
+            blobKeyData: key,
+            mimeType: "image/jpeg",
+            byteCount: byteCount,
+            chunkCount: BlobCrypto.chunkCount(forByteCount: byteCount),
+            width: 100,
+            height: 80,
+            thumbnailData: thumb
+        )
+
+        service.testHandle(frame: frame, from: peerUUID)
+        service.testHandle(frame: frame, from: peerUUID)
+
+        let messages = try context.fetch(FetchDescriptor<Message>())
+        XCTAssertEqual(messages.count, 1)
+        XCTAssertEqual(messages.first?.mediaKind, .image)
+        XCTAssertEqual(messages.first?.thumbnailData, thumb)
+        XCTAssertEqual(messages.first?.blobIDHex, blobID)
+    }
 }
