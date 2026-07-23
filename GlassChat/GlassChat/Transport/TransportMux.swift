@@ -45,7 +45,14 @@ final class TransportMux: ChatTransport {
         // or AsyncStream consumers permanently finish.
         watch(link: multipeer)
         watch(link: ble)
+
+        multipeer.onResourceSendFailed = { [weak self] peerUUID, name in
+            self?.resourceSendFailedHandler?(peerUUID, name)
+        }
     }
+
+    /// Wired by ChatService so media push dedupe can clear on send failure.
+    var resourceSendFailedHandler: ((UUID, String) -> Void)?
 
     func start() {
         guard !isRunning else { return }

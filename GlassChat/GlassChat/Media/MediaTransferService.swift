@@ -27,30 +27,17 @@ final class MediaTransferService {
 
     // MARK: - Outbound offer helpers
 
-    func prepareOutboundImage(imageData: Data, preferMultipeerCap: Bool) throws -> (
-        prepared: ImageCompressor.Result,
-        ciphertext: Data,
-        keyData: Data,
-        blobIDHex: String,
-        chunkCount: Int
-    ) {
-        let maxBytes = preferMultipeerCap
-            ? MediaConstants.multipeerMaxBytes
-            : MediaConstants.bleMaxBytes
-        let prepared = try ImageCompressor.prepare(imageData: imageData, maxBytes: maxBytes)
-        let sealed = try BlobCrypto.seal(prepared.imageData)
-        try blobStore.putCiphertext(sealed.ciphertext, blobIDHex: sealed.blobIDHex)
-        try blobStore.putPlaintext(prepared.imageData, blobIDHex: sealed.blobIDHex)
-        let chunks = BlobCrypto.chunkCount(forByteCount: sealed.ciphertext.count)
-        return (prepared, sealed.ciphertext, sealed.keyData, sealed.blobIDHex, chunks)
-    }
-
     static func isValidOffer(
+        blobIDHex: String = "",
         blobKeyData: Data,
         byteCount: Int,
         chunkCount: Int,
         thumbnailData: Data
     ) -> Bool {
+        if !blobIDHex.isEmpty {
+            let hex = blobIDHex.lowercased()
+            guard hex.count == 64, hex.allSatisfy(\.isHexDigit) else { return false }
+        }
         guard blobKeyData.count == 32 else { return false }
         guard chunkCount > 0, chunkCount <= maxChunkCount else { return false }
         guard byteCount > 0, byteCount <= maxCiphertextBytes else { return false }
@@ -84,6 +71,12 @@ final class MediaTransferService {
     func clearPushDedupe(for peerUUID: UUID) {
         let prefix = peerUUID.uuidString + "|"
         pushedResources = pushedResources.filter { !$0.hasPrefix(prefix) }
+    }
+
+    func noteResourceSendFailed(name: String, to peerUUID: UUID) {
+        guard name.hasPrefix(MediaConstants.resourceNamePrefix) else { return }
+        let blobIDHex = String(name.dropFirst(MediaConstants.resourceNamePrefix.count)).lowercased()
+        pushedResources.remove(pushKey(peerUUID: peerUUID, blobIDHex: blobIDHex))
     }
 
     // MARK: - Inbound control
@@ -150,6 +143,8 @@ final class MediaTransferService {
         guard let ciphertext = blobStore.ciphertext(for: blobIDHex) else { return }
 
         if transport.hasMultipeerLink(to: peerUUID) {
+            // Explicit pull means the receiver still needs the blob — allow one re-push.
+            pushedResources.remove(pushKey(peerUUID: peerUUID, blobIDHex: blobIDHex))
             pushIfPossible(blobIDHex: blobIDHex, to: peerUUID)
             return
         }
@@ -192,10 +187,16 @@ final class MediaTransferService {
               let index = frame.chunkIndex,
               let data = frame.chunkData else { return nil }
         guard index >= 0, index < expectedChunkCount else { return nil }
+        guard data.count <= MediaConstants.bleChunkSize else { return nil }
 
         var map = inboundChunks[blobIDHex] ?? [:]
+        let isNew = map[index] == nil
         map[index] = data
         inboundChunks[blobIDHex] = map
+        // Progress resets the stall clock — deadline is "no progress", not wall-clock total.
+        if isNew {
+            fetchAttempts[blobIDHex] = 0
+        }
 
         guard map.count >= expectedChunkCount else { return nil }
 
@@ -272,14 +273,16 @@ final class MediaTransferService {
         fetchAttempts.removeValue(forKey: blobIDHex)
     }
 
-    /// Drop partials + attempt counters so a manual retry can start clean.
+    /// Reset stall counter for a manual retry; keep verified partial chunks.
     func resetFetch(blobIDHex: String) {
-        cancelFetch(blobIDHex: blobIDHex)
-        inboundChunks.removeValue(forKey: blobIDHex)
+        fetchRetryTasks[blobIDHex]?.cancel()
+        fetchRetryTasks.removeValue(forKey: blobIDHex)
+        fetchAttempts[blobIDHex] = 0
     }
 
     func markFetchFailed(blobIDHex: String) {
-        resetFetch(blobIDHex: blobIDHex)
+        // Keep inboundChunks — hash-verified partials are safe to resume from.
+        cancelFetch(blobIDHex: blobIDHex)
     }
 
     var attempts: [String: Int] { fetchAttempts }
@@ -343,8 +346,6 @@ final class MediaTransferService {
             return
         }
         if transport.hasMultipeerLink(to: peerUUID) {
-            // Allow one more resource push attempt after timeout.
-            pushedResources.remove(pushKey(peerUUID: peerUUID, blobIDHex: blobIDHex))
             let frame = WireFrame.blobRequest(
                 senderUUID: transport.peerUUID,
                 blobIDHex: blobIDHex,

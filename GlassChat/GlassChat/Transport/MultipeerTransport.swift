@@ -80,13 +80,18 @@ final class MultipeerTransport: NSObject, LinkTransport {
         try? session.send(data, toPeers: targets, with: .reliable)
     }
 
+    /// Optional failure callback so the mux/media layer can clear push dedupe.
+    var onResourceSendFailed: ((UUID, String) -> Void)?
+
     func sendResource(at url: URL, withName name: String, to peerUUID: UUID) throws {
         guard let peer = uuidToMCPeer[peerUUID] else {
             throw TransportError.noConnectedPeers
         }
-        session.sendResource(at: url, withName: name, toPeer: peer) { error in
-            if let error {
-                print("GlassChat: sendResource failed — \(error.localizedDescription)")
+        session.sendResource(at: url, withName: name, toPeer: peer) { [weak self] error in
+            guard let error else { return }
+            print("GlassChat: sendResource failed — \(error.localizedDescription)")
+            Task { @MainActor in
+                self?.onResourceSendFailed?(peerUUID, name)
             }
         }
     }

@@ -35,8 +35,19 @@ final class BlobCryptoTests: XCTestCase {
     func testOfferValidationRejectsGarbage() {
         let key = Data(repeating: 1, count: 32)
         let thumb = Data(repeating: 2, count: 64)
+        let goodID = String(repeating: "ab", count: 32)
         XCTAssertTrue(
             MediaTransferService.isValidOffer(
+                blobIDHex: goodID,
+                blobKeyData: key,
+                byteCount: 4096,
+                chunkCount: BlobCrypto.chunkCount(forByteCount: 4096),
+                thumbnailData: thumb
+            )
+        )
+        XCTAssertFalse(
+            MediaTransferService.isValidOffer(
+                blobIDHex: "aabbcc",
                 blobKeyData: key,
                 byteCount: 4096,
                 chunkCount: BlobCrypto.chunkCount(forByteCount: 4096),

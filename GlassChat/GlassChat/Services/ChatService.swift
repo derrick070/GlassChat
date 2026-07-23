@@ -14,6 +14,7 @@ final class ChatService {
     private var eventTask: Task<Void, Never>?
     private var sequenceStore: [String: Int64] = [:]
     private var imageDataCache: [String: Data] = [:]
+    private let imageDataCacheLimit = 32
     private var blobMessageCache: [String: UUID] = [:]
     private var chunkSaveCounters: [String: Int] = [:]
     /// Chat currently on screen — incoming messages here do not bump unread.
@@ -43,6 +44,9 @@ final class ChatService {
         }
         mediaTransfer.onFetchTerminal = { [weak self] blobIDHex, status in
             self?.applyFetchTerminal(blobIDHex: blobIDHex, status: status)
+        }
+        transport.resourceSendFailedHandler = { [weak self] peerUUID, name in
+            self?.mediaTransfer.noteResourceSendFailed(name: name, to: peerUUID)
         }
     }
 
@@ -264,7 +268,7 @@ final class ChatService {
                 chatRef.lastMessageAt = message.sentAt
                 modelContext.insert(message)
                 try? modelContext.save()
-                imageDataCache[sealed.blobIDHex] = compressed.imageData
+                cacheImageData(compressed.imageData, for: sealed.blobIDHex)
                 blobMessageCache[sealed.blobIDHex] = messageID
                 mediaProgress[sealed.blobIDHex] = 1
                 lastMediaError = nil
@@ -300,7 +304,7 @@ final class ChatService {
         guard let blobID = message.blobIDHex else { return nil }
         if let cached = imageDataCache[blobID] { return cached }
         if let plain = blobStore.plaintext(for: blobID) {
-            imageDataCache[blobID] = plain
+            cacheImageData(plain, for: blobID)
             return plain
         }
         guard let key = message.blobKeyData,
@@ -310,8 +314,19 @@ final class ChatService {
             return nil
         }
         try? blobStore.putPlaintext(plain, blobIDHex: blobID)
-        imageDataCache[blobID] = plain
+        cacheImageData(plain, for: blobID)
         return plain
+    }
+
+    private func cacheImageData(_ data: Data, for blobIDHex: String) {
+        imageDataCache[blobIDHex] = data
+        while imageDataCache.count > imageDataCacheLimit {
+            if let first = imageDataCache.keys.first {
+                imageDataCache.removeValue(forKey: first)
+            } else {
+                break
+            }
+        }
     }
 
     func markChatRead(_ chat: Chat) {
@@ -382,7 +397,7 @@ final class ChatService {
         if status == .ready {
             mediaProgress[blobIDHex] = 1
             if let data = blobStore.plaintext(for: blobIDHex) {
-                imageDataCache[blobIDHex] = data
+                cacheImageData(data, for: blobIDHex)
             }
         } else if status == .failed {
             mediaProgress[blobIDHex] = mediaTransfer.progress(
@@ -469,6 +484,7 @@ final class ChatService {
               let thumbnailData = frame.thumbnailData else { return }
         let blobIDHex = rawBlobID.lowercased()
         guard MediaTransferService.isValidOffer(
+            blobIDHex: blobIDHex,
             blobKeyData: blobKeyData,
             byteCount: byteCount,
             chunkCount: chunkCount,
@@ -569,7 +585,7 @@ final class ChatService {
         ) {
             message.mediaTransfer = .ready
             mediaProgress[blobIDHex] = 1
-            imageDataCache[blobIDHex] = plain
+            cacheImageData(plain, for: blobIDHex)
             chunkSaveCounters.removeValue(forKey: blobIDHex)
             try? modelContext.save()
         } else {
@@ -604,7 +620,7 @@ final class ChatService {
         ) {
             message.mediaTransfer = .ready
             mediaProgress[blobIDHex] = 1
-            imageDataCache[blobIDHex] = plain
+            cacheImageData(plain, for: blobIDHex)
             try? modelContext.save()
         }
     }
@@ -755,7 +771,7 @@ final class ChatService {
             message.mediaTransfer = .ready
             mediaProgress[blobID] = 1
             if let data = blobStore.plaintext(for: blobID) {
-                imageDataCache[blobID] = data
+                cacheImageData(data, for: blobID)
             }
             return
         }

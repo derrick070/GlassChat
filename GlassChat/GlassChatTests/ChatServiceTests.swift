@@ -94,6 +94,8 @@ final class ChatServiceTests: XCTestCase {
         let messageID = UUID()
         let thumb = Data(repeating: 4, count: 32)
         let key = Data(repeating: 5, count: 32)
+        let blobID = String(repeating: "cd", count: 32)
+        let byteCount = 2048
         let frame = WireFrame.imageOffer(
             senderUUID: peerUUID,
             messageID: messageID,
@@ -101,11 +103,11 @@ final class ChatServiceTests: XCTestCase {
             text: "Photo",
             sentAt: .now,
             sequence: 1,
-            blobIDHex: "aabbcc",
+            blobIDHex: blobID,
             blobKeyData: key,
             mimeType: "image/jpeg",
-            byteCount: 2048,
-            chunkCount: 2,
+            byteCount: byteCount,
+            chunkCount: BlobCrypto.chunkCount(forByteCount: byteCount),
             width: 100,
             height: 80,
             thumbnailData: thumb
@@ -118,6 +120,6 @@ final class ChatServiceTests: XCTestCase {
         XCTAssertEqual(messages.count, 1)
         XCTAssertEqual(messages.first?.mediaKind, .image)
         XCTAssertEqual(messages.first?.thumbnailData, thumb)
-        XCTAssertEqual(messages.first?.blobIDHex, "aabbcc")
+        XCTAssertEqual(messages.first?.blobIDHex, blobID)
     }
 }
