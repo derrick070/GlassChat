@@ -13,9 +13,15 @@ protocol ChatTransport: AnyObject {
     func start()
     func stop()
     func refreshDiscovery()
-    func send(_ frame: WireFrame, to peerUUIDs: [UUID]) throws
+    func send(_ frame: WireFrame, to peerUUIDs: [UUID], dedupeKey: String?) throws
     func isConnected(_ uuid: UUID) -> Bool
     func updateDisplayName(_ name: String)
+}
+
+extension ChatTransport {
+    func send(_ frame: WireFrame, to peerUUIDs: [UUID]) throws {
+        try send(frame, to: peerUUIDs, dedupeKey: nil)
+    }
 }
 
 enum LinkEvent: Sendable {

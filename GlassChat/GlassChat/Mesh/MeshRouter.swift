@@ -23,10 +23,27 @@ final class MeshRouter {
         case relay(RelayAction)
     }
 
-    func handleInbound(_ data: Data, fromLink linkUUID: UUID, myUUID: UUID) -> Outcome {
-        guard let packet = try? MeshPacket.decode(from: data) else { return .ignore }
+    func noteSent(_ id: UUID) {
+        remember(id)
+    }
+
+    func handleInbound(
+        packet: MeshPacket,
+        encoded: Data,
+        fromLink linkUUID: UUID,
+        myUUID: UUID
+    ) -> Outcome {
         guard packet.version == MeshPacket.currentVersion else { return .ignore }
-        guard !hasSeen(packet.packetID) else { return .ignore }
+        guard packet.sourceUUID != myUUID else { return .ignore }
+
+        // Already-seen packets: still deliver sealed frames addressed to us so a
+        // lost ACK can recover when the sender retransmits the same packetID.
+        if hasSeen(packet.packetID) {
+            if packet.kind == .sealed, packet.destinationUUID == myUUID {
+                return .deliverSealed(packet)
+            }
+            return .ignore
+        }
         remember(packet.packetID)
 
         switch packet.kind {
@@ -44,7 +61,7 @@ final class MeshRouter {
                 return .relay(
                     RelayAction(
                         packet: packet,
-                        encoded: data,
+                        encoded: encoded,
                         excludeLink: linkUUID,
                         shouldBroadcast: false
                     )
@@ -52,11 +69,11 @@ final class MeshRouter {
             }
             var forwarded = packet
             forwarded.ttl -= 1
-            guard let encoded = try? forwarded.encode() else { return .ignore }
+            guard let encodedForward = try? forwarded.encode() else { return .ignore }
             return .relay(
                 RelayAction(
                     packet: forwarded,
-                    encoded: encoded,
+                    encoded: encodedForward,
                     excludeLink: linkUUID,
                     shouldBroadcast: true
                 )

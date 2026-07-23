@@ -19,8 +19,12 @@ struct GlassChatApp: App {
         }
 
         let identity = LocalIdentity.loadOrCreate()
-        let context = ModelContext(modelContainer)
-        _transport = State(initialValue: TransportMux(identity: identity, modelContext: context))
+        _transport = State(
+            initialValue: TransportMux(
+                identity: identity,
+                modelContext: modelContainer.mainContext
+            )
+        )
     }
 
     var body: some Scene {

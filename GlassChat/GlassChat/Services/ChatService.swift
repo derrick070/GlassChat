@@ -367,7 +367,7 @@ final class ChatService {
         )
 
         do {
-            try transport.send(frame, to: targets)
+            try transport.send(frame, to: targets, dedupeKey: message.id.uuidString)
             if message.status == .pending || message.status == .failed {
                 message.status = .sent
             }
@@ -384,7 +384,7 @@ final class ChatService {
 
     private func sendAck(for messageID: UUID, to peer: UUID) {
         let frame = WireFrame.ack(senderUUID: transport.peerUUID, ackedMessageID: messageID)
-        try? transport.send(frame, to: [peer])
+        try? transport.send(frame, to: [peer], dedupeKey: "ack:\(messageID.uuidString)")
     }
 
     private func undeliveredTargets(for message: Message, in chat: Chat) -> [UUID] {

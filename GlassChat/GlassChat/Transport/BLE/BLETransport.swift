@@ -11,23 +11,24 @@ final class BLETransport: NSObject, LinkTransport {
     private let identity: LocalIdentity
     private let reassembler = BLEReassembler()
 
-    private var central: CBCentralManager!
-    private var peripheralManager: CBPeripheralManager!
+    private var central: CBCentralManager?
+    private var peripheralManager: CBPeripheralManager?
     private var inboxCharacteristic: CBMutableCharacteristic!
     private var outboxCharacteristic: CBMutableCharacteristic!
+    private var identityCharacteristic: CBMutableCharacteristic!
 
     private var peerUUIDByPeripheral: [UUID: UUID] = [:] // peripheral.identifier → peerUUID
     private var peripheralByPeerUUID: [UUID: CBPeripheral] = [:]
     private var peripheralByID: [UUID: CBPeripheral] = [:]
-    private var knownPeerFromAd: [UUID: UUID] = [:] // peripheral.identifier → peerUUID from ad
-    private var subscribedCentrals: [UUID: UUID] = [:] // central.identifier → peerUUID
-    private var centralIDByPeer: [UUID: UUID] = [:]
+    private var centralByPeer: [UUID: CBCentral] = [:]
+    private var peerByCentralID: [UUID: UUID] = [:] // central.identifier → peerUUID
 
     private let linkContinuation: AsyncStream<LinkEvent>.Continuation
     let linkEvents: AsyncStream<LinkEvent>
 
     private var isRunning = false
-    private var pendingOutbound: [UUID: [Data]] = [:]
+    private var pendingWrites: [UUID: [Data]] = [:]
+    private var pendingNotifies: [UUID: [Data]] = [:]
 
     init(identity: LocalIdentity) {
         self.identity = identity
@@ -35,42 +36,34 @@ final class BLETransport: NSObject, LinkTransport {
         self.linkEvents = AsyncStream { continuation = $0 }
         self.linkContinuation = continuation
         super.init()
-        central = CBCentralManager(delegate: self, queue: nil)
-        peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
     }
 
     func start() {
         isRunning = true
+        if central == nil {
+            central = CBCentralManager(delegate: self, queue: nil)
+            peripheralManager = CBPeripheralManager(delegate: self, queue: nil)
+        }
         startAdvertisingIfReady()
         startScanningIfReady()
     }
 
     func stop() {
         isRunning = false
-        central.stopScan()
-        peripheralManager.stopAdvertising()
-        for peripheral in peripheralByID.values {
-            central.cancelPeripheralConnection(peripheral)
-        }
-        peerUUIDByPeripheral.removeAll()
-        peripheralByPeerUUID.removeAll()
-        peripheralByID.removeAll()
-        knownPeerFromAd.removeAll()
-        subscribedCentrals.removeAll()
-        centralIDByPeer.removeAll()
-        connectedLinkUUIDs = []
-        pendingOutbound.removeAll()
+        central?.stopScan()
+        peripheralManager?.stopAdvertising()
+        resetCentralState(cancelConnections: true)
+        resetPeripheralState(removeServices: true)
     }
 
     func refreshDiscovery() {
         guard isRunning else { return }
-        central.stopScan()
+        central?.stopScan()
         startScanningIfReady()
         startAdvertisingIfReady()
     }
 
     func send(_ data: Data, to peerUUID: UUID) throws {
-        let fragments = BLEFragmenter.fragment(data, mtu: BLEConstants.defaultWriteMTU)
         var sent = false
 
         if let peripheral = peripheralByPeerUUID[peerUUID],
@@ -78,26 +71,32 @@ final class BLETransport: NSObject, LinkTransport {
             .first(where: { $0.uuid == BLEConstants.serviceUUID })?
             .characteristics?
             .first(where: { $0.uuid == BLEConstants.inboxCharacteristicUUID }) {
+            let mtu = max(20, peripheral.maximumWriteValueLength(for: .withoutResponse))
+            let fragments = BLEFragmenter.fragment(data, mtu: mtu)
             for fragment in fragments {
                 if peripheral.canSendWriteWithoutResponse {
                     peripheral.writeValue(fragment, for: inbox, type: .withoutResponse)
                     sent = true
                 } else {
-                    pendingOutbound[peerUUID, default: []].append(fragment)
+                    pendingWrites[peerUUID, default: []].append(fragment)
                     sent = true
                 }
             }
         }
 
-        if let _ = centralIDByPeer[peerUUID], outboxCharacteristic != nil {
+        if let centralPeer = centralByPeer[peerUUID],
+           let manager = peripheralManager,
+           outboxCharacteristic != nil {
+            let mtu = max(20, centralPeer.maximumUpdateValueLength)
+            let fragments = BLEFragmenter.fragment(data, mtu: mtu)
             for fragment in fragments {
-                let ok = peripheralManager.updateValue(
+                let ok = manager.updateValue(
                     fragment,
                     for: outboxCharacteristic,
-                    onSubscribedCentrals: nil
+                    onSubscribedCentrals: [centralPeer]
                 )
                 if !ok {
-                    pendingOutbound[peerUUID, default: []].append(fragment)
+                    pendingNotifies[peerUUID, default: []].append(fragment)
                 }
                 sent = true
             }
@@ -113,7 +112,7 @@ final class BLETransport: NSObject, LinkTransport {
     }
 
     private func startScanningIfReady() {
-        guard isRunning, central.state == .poweredOn else { return }
+        guard isRunning, let central, central.state == .poweredOn else { return }
         central.scanForPeripherals(
             withServices: [BLEConstants.serviceUUID],
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
@@ -121,19 +120,20 @@ final class BLETransport: NSObject, LinkTransport {
     }
 
     private func startAdvertisingIfReady() {
-        guard isRunning, peripheralManager.state == .poweredOn else { return }
+        guard isRunning, let peripheralManager, peripheralManager.state == .poweredOn else { return }
         ensureGATT()
-        var peerBytes = Data()
-        withUnsafeBytes(of: identity.peerUUID.uuid) { peerBytes.append(contentsOf: $0) }
         peripheralManager.startAdvertising([
             CBAdvertisementDataServiceUUIDsKey: [BLEConstants.serviceUUID],
-            CBAdvertisementDataLocalNameKey: String(identity.shortID.prefix(8)),
-            CBAdvertisementDataServiceDataKey: [BLEConstants.serviceUUID: peerBytes]
+            CBAdvertisementDataLocalNameKey: String(identity.shortID.prefix(8))
         ])
     }
 
     private func ensureGATT() {
-        guard inboxCharacteristic == nil else { return }
+        guard let peripheralManager else { return }
+        if inboxCharacteristic != nil { return }
+        var peerBytes = Data()
+        withUnsafeBytes(of: identity.peerUUID.uuid) { peerBytes.append(contentsOf: $0) }
+
         inboxCharacteristic = CBMutableCharacteristic(
             type: BLEConstants.inboxCharacteristicUUID,
             properties: [.writeWithoutResponse],
@@ -146,9 +146,47 @@ final class BLETransport: NSObject, LinkTransport {
             value: nil,
             permissions: [.readable]
         )
+        identityCharacteristic = CBMutableCharacteristic(
+            type: BLEConstants.identityCharacteristicUUID,
+            properties: [.read],
+            value: peerBytes,
+            permissions: [.readable]
+        )
         let service = CBMutableService(type: BLEConstants.serviceUUID, primary: true)
-        service.characteristics = [inboxCharacteristic, outboxCharacteristic]
+        service.characteristics = [inboxCharacteristic, outboxCharacteristic, identityCharacteristic]
         peripheralManager.add(service)
+    }
+
+    private func resetCentralState(cancelConnections: Bool) {
+        if cancelConnections, let central {
+            for peripheral in peripheralByID.values {
+                central.cancelPeripheralConnection(peripheral)
+            }
+        }
+        let peerIDs = Set(peerUUIDByPeripheral.values)
+        for peerUUID in peerIDs {
+            unregisterLink(peerUUID: peerUUID)
+        }
+        peerUUIDByPeripheral.removeAll()
+        peripheralByPeerUUID.removeAll()
+        peripheralByID.removeAll()
+        pendingWrites.removeAll()
+    }
+
+    private func resetPeripheralState(removeServices: Bool) {
+        let peerIDs = Set(centralByPeer.keys)
+        for peerUUID in peerIDs {
+            unregisterLink(peerUUID: peerUUID)
+        }
+        centralByPeer.removeAll()
+        peerByCentralID.removeAll()
+        pendingNotifies.removeAll()
+        if removeServices, let peripheralManager {
+            peripheralManager.removeAllServices()
+            inboxCharacteristic = nil
+            outboxCharacteristic = nil
+            identityCharacteristic = nil
+        }
     }
 
     private func registerLink(peerUUID: UUID) {
@@ -169,10 +207,8 @@ final class BLETransport: NSObject, LinkTransport {
         linkContinuation.yield(.dataReceived(complete, from: peerUUID))
     }
 
-    private func peerUUID(from advertisementData: [String: Any]) -> UUID? {
-        guard let serviceData = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data],
-              let data = serviceData[BLEConstants.serviceUUID],
-              data.count == 16 else { return nil }
+    private func uuid(fromIdentityData data: Data) -> UUID? {
+        guard data.count == 16 else { return nil }
         let bytes = [UInt8](data)
         return UUID(uuid: (
             bytes[0], bytes[1], bytes[2], bytes[3],
@@ -181,12 +217,39 @@ final class BLETransport: NSObject, LinkTransport {
             bytes[12], bytes[13], bytes[14], bytes[15]
         ))
     }
+
+    /// Called by mux when an announce arrives over a provisional BLE central link.
+    func remapProvisionalLink(from provisional: UUID, to realPeerUUID: UUID) {
+        guard provisional != realPeerUUID else { return }
+        if let central = centralByPeer.removeValue(forKey: provisional) {
+            peerByCentralID[central.identifier] = realPeerUUID
+            centralByPeer[realPeerUUID] = central
+        }
+        if let writes = pendingWrites.removeValue(forKey: provisional) {
+            pendingWrites[realPeerUUID, default: []].append(contentsOf: writes)
+        }
+        if let notifies = pendingNotifies.removeValue(forKey: provisional) {
+            pendingNotifies[realPeerUUID, default: []].append(contentsOf: notifies)
+        }
+        connectedLinkUUIDs.removeAll { $0 == provisional }
+        if !connectedLinkUUIDs.contains(realPeerUUID) {
+            connectedLinkUUIDs.append(realPeerUUID)
+        }
+        linkContinuation.yield(.linkDown(provisional))
+        linkContinuation.yield(.linkUp(realPeerUUID))
+    }
 }
 
 extension BLETransport: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         Task { @MainActor in
-            startScanningIfReady()
+            if central.state == .poweredOn {
+                if isRunning {
+                    startScanningIfReady()
+                }
+            } else {
+                resetCentralState(cancelConnections: false)
+            }
         }
     }
 
@@ -198,17 +261,9 @@ extension BLETransport: CBCentralManagerDelegate {
     ) {
         Task { @MainActor in
             guard isRunning else { return }
-            if let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String {
-                linkContinuation.yield(.discoveredName(name))
-            }
-            guard let peerUUID = peerUUID(from: advertisementData) else { return }
-            guard peerUUID != identity.peerUUID else { return }
-            // Tie-break: only the lower UUID initiates central connection.
-            guard identity.peerUUID.uuidString < peerUUID.uuidString else { return }
             guard connectedLinkUUIDs.count < BLEConstants.maxLinks else { return }
-            guard peripheralByPeerUUID[peerUUID] == nil else { return }
+            guard peripheralByID[peripheral.identifier] == nil else { return }
 
-            knownPeerFromAd[peripheral.identifier] = peerUUID
             peripheralByID[peripheral.identifier] = peripheral
             peripheral.delegate = self
             central.connect(peripheral, options: nil)
@@ -228,13 +283,22 @@ extension BLETransport: CBCentralManagerDelegate {
     ) {
         Task { @MainActor in
             let id = peripheral.identifier
-            if let peerUUID = peerUUIDByPeripheral[id] ?? knownPeerFromAd[id] {
+            if let peerUUID = peerUUIDByPeripheral[id] {
                 peripheralByPeerUUID.removeValue(forKey: peerUUID)
                 unregisterLink(peerUUID: peerUUID)
             }
             peerUUIDByPeripheral.removeValue(forKey: id)
             peripheralByID.removeValue(forKey: id)
-            knownPeerFromAd.removeValue(forKey: id)
+        }
+    }
+
+    nonisolated func centralManager(
+        _ central: CBCentralManager,
+        didFailToConnect peripheral: CBPeripheral,
+        error: Error?
+    ) {
+        Task { @MainActor in
+            peripheralByID.removeValue(forKey: peripheral.identifier)
         }
     }
 }
@@ -245,7 +309,11 @@ extension BLETransport: CBPeripheralDelegate {
             guard let services = peripheral.services else { return }
             for service in services where service.uuid == BLEConstants.serviceUUID {
                 peripheral.discoverCharacteristics(
-                    [BLEConstants.inboxCharacteristicUUID, BLEConstants.outboxCharacteristicUUID],
+                    [
+                        BLEConstants.inboxCharacteristicUUID,
+                        BLEConstants.outboxCharacteristicUUID,
+                        BLEConstants.identityCharacteristicUUID
+                    ],
                     for: service
                 )
             }
@@ -258,13 +326,13 @@ extension BLETransport: CBPeripheralDelegate {
         error: Error?
     ) {
         Task { @MainActor in
-            guard let peerUUID = knownPeerFromAd[peripheral.identifier] else { return }
-            peerUUIDByPeripheral[peripheral.identifier] = peerUUID
-            peripheralByPeerUUID[peerUUID] = peripheral
-            if let outbox = service.characteristics?.first(where: { $0.uuid == BLEConstants.outboxCharacteristicUUID }) {
-                peripheral.setNotifyValue(true, for: outbox)
+            guard let identityChar = service.characteristics?
+                .first(where: { $0.uuid == BLEConstants.identityCharacteristicUUID })
+            else {
+                central?.cancelPeripheralConnection(peripheral)
+                return
             }
-            registerLink(peerUUID: peerUUID)
+            peripheral.readValue(for: identityChar)
         }
     }
 
@@ -274,17 +342,53 @@ extension BLETransport: CBPeripheralDelegate {
         error: Error?
     ) {
         Task { @MainActor in
+            if characteristic.uuid == BLEConstants.identityCharacteristicUUID {
+                handleIdentityRead(peripheral: peripheral, characteristic: characteristic)
+                return
+            }
             guard let data = characteristic.value,
-                  let peerUUID = peerUUIDByPeripheral[peripheral.identifier] ?? knownPeerFromAd[peripheral.identifier]
+                  let peerUUID = peerUUIDByPeripheral[peripheral.identifier]
             else { return }
             handleFragment(data, from: peerUUID)
         }
     }
 
+    private func handleIdentityRead(peripheral: CBPeripheral, characteristic: CBCharacteristic) {
+        guard let data = characteristic.value, let remoteUUID = uuid(fromIdentityData: data) else {
+            central?.cancelPeripheralConnection(peripheral)
+            return
+        }
+        if remoteUUID == identity.peerUUID {
+            central?.cancelPeripheralConnection(peripheral)
+            return
+        }
+        // Lower UUID initiates central role; higher UUID relies on reverse (peripheral) link.
+        if identity.peerUUID.uuidString >= remoteUUID.uuidString {
+            if centralByPeer[remoteUUID] != nil {
+                central?.cancelPeripheralConnection(peripheral)
+                return
+            }
+            // Reverse not up yet — keep this central link so we are not silent.
+        }
+        if peripheralByPeerUUID[remoteUUID] != nil {
+            central?.cancelPeripheralConnection(peripheral)
+            return
+        }
+
+        peerUUIDByPeripheral[peripheral.identifier] = remoteUUID
+        peripheralByPeerUUID[remoteUUID] = peripheral
+
+        if let service = peripheral.services?.first(where: { $0.uuid == BLEConstants.serviceUUID }),
+           let outbox = service.characteristics?.first(where: { $0.uuid == BLEConstants.outboxCharacteristicUUID }) {
+            peripheral.setNotifyValue(true, for: outbox)
+        }
+        registerLink(peerUUID: remoteUUID)
+    }
+
     nonisolated func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
         Task { @MainActor in
             guard let peerUUID = peerUUIDByPeripheral[peripheral.identifier],
-                  var queue = pendingOutbound[peerUUID],
+                  var queue = pendingWrites[peerUUID],
                   let inbox = peripheral.services?
                     .first(where: { $0.uuid == BLEConstants.serviceUUID })?
                     .characteristics?
@@ -294,7 +398,7 @@ extension BLETransport: CBPeripheralDelegate {
                 let fragment = queue.removeFirst()
                 peripheral.writeValue(fragment, for: inbox, type: .withoutResponse)
             }
-            pendingOutbound[peerUUID] = queue
+            pendingWrites[peerUUID] = queue
         }
     }
 }
@@ -302,7 +406,20 @@ extension BLETransport: CBPeripheralDelegate {
 extension BLETransport: CBPeripheralManagerDelegate {
     nonisolated func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         Task { @MainActor in
-            startAdvertisingIfReady()
+            if peripheral.state == .poweredOn {
+                // Bluetooth came back — GATT was invalidated; republish.
+                inboxCharacteristic = nil
+                outboxCharacteristic = nil
+                identityCharacteristic = nil
+                if isRunning {
+                    startAdvertisingIfReady()
+                }
+            } else {
+                resetPeripheralState(removeServices: false)
+                inboxCharacteristic = nil
+                outboxCharacteristic = nil
+                identityCharacteristic = nil
+            }
         }
     }
 
@@ -311,32 +428,12 @@ extension BLETransport: CBPeripheralManagerDelegate {
         didReceiveWrite requests: [CBATTRequest]
     ) {
         Task { @MainActor in
+            guard isRunning else { return }
             for request in requests {
-                if let data = request.value {
-                    // Until announce maps the central, buffer under a placeholder derived from central UUID.
-                    // Announce handling in mux will call notePeripheralPeer if needed; for writes we use
-                    // subscribed mapping when available, else temporary.
-                    let centralID = request.central.identifier
-                    if let peerUUID = subscribedCentrals[centralID] {
-                        handleFragment(data, from: peerUUID)
-                    } else {
-                        // Stash against central ID as temporary peer key via first announce decode path:
-                        // use central UUID as provisional and rewrite on announce — simplified: drop until mapped.
-                        // Map provisional: use centralID as UUID-compatible key by hashing into UUID namespace.
-                        let provisional = centralID
-                        // Store reverse so announce can upgrade — for v1 require announce via notify path first.
-                        // Accept writes only after subscription handshake sets mapping in didSubscribe.
-                        _ = provisional
-                        // Try decode announce from complete packet later; for now attempt reassembly keyed by central.
-                        if let peerUUID = subscribedCentrals[centralID] {
-                            handleFragment(data, from: peerUUID)
-                        } else {
-                            // Provisional link using central identifier as peer until announce arrives.
-                            handleFragment(data, from: centralID)
-                        }
-                    }
-                }
-                peripheral.respond(to: request, withResult: .success)
+                guard let data = request.value else { continue }
+                let peerUUID = peerByCentralID[request.central.identifier] ?? request.central.identifier
+                handleFragment(data, from: peerUUID)
+                // Inbox is writeWithoutResponse — no ATT response required.
             }
         }
     }
@@ -347,10 +444,10 @@ extension BLETransport: CBPeripheralManagerDelegate {
         didSubscribeTo characteristic: CBCharacteristic
     ) {
         Task { @MainActor in
-            // Wait for announce to learn peer UUID; use central.identifier provisionally.
+            guard isRunning else { return }
             let provisional = central.identifier
-            subscribedCentrals[central.identifier] = provisional
-            centralIDByPeer[provisional] = central.identifier
+            peerByCentralID[central.identifier] = provisional
+            centralByPeer[provisional] = central
             registerLink(peerUUID: provisional)
         }
     }
@@ -361,8 +458,8 @@ extension BLETransport: CBPeripheralManagerDelegate {
         didUnsubscribeFrom characteristic: CBCharacteristic
     ) {
         Task { @MainActor in
-            if let peerUUID = subscribedCentrals.removeValue(forKey: central.identifier) {
-                centralIDByPeer.removeValue(forKey: peerUUID)
+            if let peerUUID = peerByCentralID.removeValue(forKey: central.identifier) {
+                centralByPeer.removeValue(forKey: peerUUID)
                 unregisterLink(peerUUID: peerUUID)
             }
         }
@@ -370,39 +467,23 @@ extension BLETransport: CBPeripheralManagerDelegate {
 
     nonisolated func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
         Task { @MainActor in
-            // Drain a shallow global pending queue best-effort.
-            for (peerUUID, queue) in pendingOutbound {
-                guard !queue.isEmpty else { continue }
+            for (peerUUID, queue) in pendingNotifies {
+                guard let central = centralByPeer[peerUUID], !queue.isEmpty else { continue }
                 var remaining = queue
                 while !remaining.isEmpty {
                     let fragment = remaining.removeFirst()
-                    let ok = peripheralManager.updateValue(
+                    let ok = peripheralManager?.updateValue(
                         fragment,
                         for: outboxCharacteristic,
-                        onSubscribedCentrals: nil
-                    )
+                        onSubscribedCentrals: [central]
+                    ) ?? false
                     if !ok {
                         remaining.insert(fragment, at: 0)
                         break
                     }
                 }
-                pendingOutbound[peerUUID] = remaining
+                pendingNotifies[peerUUID] = remaining
             }
         }
-    }
-
-    /// Called by mux when an announce arrives over a provisional BLE central link.
-    func remapProvisionalLink(from provisional: UUID, to realPeerUUID: UUID) {
-        guard provisional != realPeerUUID else { return }
-        if let centralID = centralIDByPeer.removeValue(forKey: provisional) {
-            subscribedCentrals[centralID] = realPeerUUID
-            centralIDByPeer[realPeerUUID] = centralID
-        }
-        connectedLinkUUIDs.removeAll { $0 == provisional }
-        if !connectedLinkUUIDs.contains(realPeerUUID) {
-            connectedLinkUUIDs.append(realPeerUUID)
-        }
-        linkContinuation.yield(.linkDown(provisional))
-        linkContinuation.yield(.linkUp(realPeerUUID))
     }
 }

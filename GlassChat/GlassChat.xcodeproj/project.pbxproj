@@ -348,6 +348,8 @@
 				F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */,
 				BFB63C6B0B6661E87D90CED3 /* OutboxTests.swift in Sources */,
 				1ABD5020EA19C8F3EA402BBE /* WireFrameTests.swift in Sources */,
+				A1000000000000000000000C /* EnvelopeCryptoTests.swift in Sources */,
+				A1000000000000000000000D /* MeshPacketTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -422,7 +424,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = Y6P4X7XYZ7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -448,7 +450,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = Y6P4X7XYZ7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

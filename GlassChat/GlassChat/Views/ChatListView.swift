@@ -82,6 +82,7 @@ struct ChatListView: View {
                     SettingsView()
                 }
             }
+            .toolbarBackground(.hidden, for: .navigationBar)
             .background(AtmosphereBackground())
         }
         .sheet(isPresented: $showNameSheet) {
@@ -118,11 +119,9 @@ struct ChatListView: View {
                 NavigationLink(value: AppRoute.chat(chat.id)) {
                     chatRow(chat)
                 }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .padding(.vertical, 2)
-                )
+                .listRowInsets(EdgeInsets(top: 6, leading: 28, bottom: 6, trailing: 28))
+                .listRowSeparator(.hidden)
+                .listRowBackground(chatRowBackground)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         chatService.deleteChat(chat)
@@ -134,16 +133,26 @@ struct ChatListView: View {
         }
         .scrollContentBackground(.hidden)
         .listStyle(.plain)
+        .contentMargins(.top, 4, for: .scrollContent)
+    }
+
+    private var chatRowBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        return shape
+            .fill(.thinMaterial)
+            .overlay(shape.stroke(.white.opacity(0.12), lineWidth: 0.5))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 2)
     }
 
     private func chatRow(_ chat: Chat) -> some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Circle()
                 .fill(connectivityColor(for: chat))
-                .frame(width: 10, height: 10)
+                .frame(width: 9, height: 9)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(chat.name)
                         .font(.headline)
                     if chat.kind == .group {
@@ -151,19 +160,19 @@ struct ChatListView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
                     if let last = chat.messages.max(by: { $0.sentAt < $1.sentAt }) {
                         Text(last.sentAt, style: .time)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                HStack {
+                HStack(spacing: 8) {
                     Text(snippet(for: chat))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Spacer()
+                    Spacer(minLength: 8)
                     if chat.unreadCount > 0 {
                         Text("\(chat.unreadCount)")
                             .font(.caption2.bold())
@@ -175,7 +184,8 @@ struct ChatListView: View {
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
     }
 
     private var emptyState: some View {

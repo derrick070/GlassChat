@@ -8,7 +8,8 @@ final class EnvelopeCryptoTests: XCTestCase {
         let bob = Curve25519.KeyAgreement.PrivateKey()
         let aliceID = UUID()
         let bobID = UUID()
-        let aad = Data("packet".utf8)
+        let packetID = UUID()
+        let aad = uuidData(packetID) + uuidData(aliceID) + uuidData(bobID)
         let plaintext = Data("hello mesh".utf8)
 
         let sealed = try EnvelopeCrypto.seal(
@@ -53,5 +54,41 @@ final class EnvelopeCryptoTests: XCTestCase {
                 authenticatedData: aad
             )
         )
+    }
+
+    func testReflectedDirectionAADFails() throws {
+        let alice = Curve25519.KeyAgreement.PrivateKey()
+        let bob = Curve25519.KeyAgreement.PrivateKey()
+        let aliceID = UUID()
+        let bobID = UUID()
+        let packetID = UUID()
+        let sealAAD = uuidData(packetID) + uuidData(aliceID) + uuidData(bobID)
+        let reflectedAAD = uuidData(packetID) + uuidData(bobID) + uuidData(aliceID)
+
+        let sealed = try EnvelopeCrypto.seal(
+            plaintext: Data("ack-or-message".utf8),
+            to: bob.publicKey.rawRepresentation,
+            myPrivate: alice,
+            myUUID: aliceID,
+            theirUUID: bobID,
+            authenticatedData: sealAAD
+        )
+
+        XCTAssertThrowsError(
+            try EnvelopeCrypto.open(
+                ciphertext: sealed,
+                from: alice.publicKey.rawRepresentation,
+                myPrivate: bob,
+                myUUID: bobID,
+                theirUUID: aliceID,
+                authenticatedData: reflectedAAD
+            )
+        )
+    }
+
+    private func uuidData(_ uuid: UUID) -> Data {
+        var data = Data()
+        withUnsafeBytes(of: uuid.uuid) { data.append(contentsOf: $0) }
+        return data
     }
 }

@@ -67,16 +67,17 @@ struct AtmosphereBackground: View {
 
     private var meshColors: [Color] {
         if colorScheme == .dark {
+            // Clearer teal/ink contrast so glass materials have something to catch.
             [
-                Color(red: 0.08, green: 0.14, blue: 0.16),
-                Color(red: 0.10, green: 0.18, blue: 0.20),
-                Color(red: 0.12, green: 0.14, blue: 0.20),
-                Color(red: 0.06, green: 0.12, blue: 0.14),
-                Color(red: 0.11, green: 0.15, blue: 0.18),
-                Color(red: 0.09, green: 0.13, blue: 0.19),
-                Color(red: 0.07, green: 0.14, blue: 0.15),
-                Color(red: 0.10, green: 0.12, blue: 0.16),
-                Color(red: 0.08, green: 0.13, blue: 0.17)
+                Color(red: 0.06, green: 0.16, blue: 0.18),
+                Color(red: 0.10, green: 0.28, blue: 0.30),
+                Color(red: 0.14, green: 0.18, blue: 0.28),
+                Color(red: 0.04, green: 0.12, blue: 0.14),
+                Color(red: 0.08, green: 0.20, blue: 0.24),
+                Color(red: 0.12, green: 0.16, blue: 0.26),
+                Color(red: 0.05, green: 0.14, blue: 0.16),
+                Color(red: 0.09, green: 0.18, blue: 0.22),
+                Color(red: 0.07, green: 0.12, blue: 0.20)
             ]
         } else {
             [
@@ -96,9 +97,9 @@ struct AtmosphereBackground: View {
     private var gradientColors: [Color] {
         if colorScheme == .dark {
             [
-                Color(red: 0.08, green: 0.14, blue: 0.16),
-                Color(red: 0.10, green: 0.16, blue: 0.20),
-                Color(red: 0.09, green: 0.12, blue: 0.18)
+                Color(red: 0.06, green: 0.16, blue: 0.18),
+                Color(red: 0.10, green: 0.24, blue: 0.28),
+                Color(red: 0.08, green: 0.12, blue: 0.20)
             ]
         } else {
             [

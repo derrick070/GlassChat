@@ -5,6 +5,7 @@ import SwiftData
 final class MeshStore {
     static let storeExpiry: TimeInterval = 24 * 60 * 60
     static let storeCapPackets = 500
+    static let maxFutureSkew: TimeInterval = 5 * 60
 
     private let modelContext: ModelContext
 
@@ -14,10 +15,16 @@ final class MeshStore {
 
     func persist(_ packet: MeshPacket, encoded: Data) {
         purgeExpired()
-        let expires = packet.createdAt.addingTimeInterval(Self.storeExpiry)
+        let now = Date()
+        if packet.createdAt > now.addingTimeInterval(Self.maxFutureSkew) {
+            return
+        }
+        let cappedCreated = min(packet.createdAt, now)
+        let expires = cappedCreated.addingTimeInterval(Self.storeExpiry)
         if let existing = fetch(packetID: packet.packetID) {
             existing.data = encoded
             existing.expiresAt = expires
+            existing.createdAt = cappedCreated
         } else {
             modelContext.insert(
                 StoredPacket(
@@ -25,7 +32,7 @@ final class MeshStore {
                     destinationUUID: packet.destinationUUID,
                     sourceUUID: packet.sourceUUID,
                     data: encoded,
-                    createdAt: packet.createdAt,
+                    createdAt: cappedCreated,
                     expiresAt: expires
                 )
             )
@@ -36,7 +43,7 @@ final class MeshStore {
 
     func allPacketsOldestFirst() -> [StoredPacket] {
         purgeExpired()
-        var descriptor = FetchDescriptor<StoredPacket>(
+        let descriptor = FetchDescriptor<StoredPacket>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
         return (try? modelContext.fetch(descriptor)) ?? []
@@ -66,7 +73,7 @@ final class MeshStore {
     }
 
     private func enforceCaps() {
-        var descriptor = FetchDescriptor<StoredPacket>(
+        let descriptor = FetchDescriptor<StoredPacket>(
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
         guard var all = try? modelContext.fetch(descriptor) else { return }

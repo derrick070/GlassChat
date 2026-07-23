@@ -21,6 +21,8 @@ final class MultipeerTransport: NSObject, LinkTransport {
     private var uuidToMCPeer: [UUID: MCPeerID] = [:]
     private var discoveredUUIDByPeer: [MCPeerID: UUID] = [:]
     private var pendingInvites: Set<MCPeerID> = []
+    /// Connected in MCSession before we learned their GlassChat UUID (invite race).
+    private var awaitingUUID: Set<MCPeerID> = []
 
     private static let inviteTimeout: TimeInterval = 30
 
@@ -61,6 +63,7 @@ final class MultipeerTransport: NSObject, LinkTransport {
         uuidToMCPeer.removeAll()
         discoveredUUIDByPeer.removeAll()
         pendingInvites.removeAll()
+        awaitingUUID.removeAll()
         configureSession()
     }
 
@@ -126,6 +129,8 @@ final class MultipeerTransport: NSObject, LinkTransport {
     }
 
     private func register(uuid: UUID, mcPeerID: MCPeerID) {
+        awaitingUUID.remove(mcPeerID)
+        discoveredUUIDByPeer[mcPeerID] = uuid
         mcPeerToUUID[mcPeerID] = uuid
         uuidToMCPeer[uuid] = mcPeerID
         if !connectedLinkUUIDs.contains(uuid) {
@@ -134,7 +139,16 @@ final class MultipeerTransport: NSObject, LinkTransport {
         }
     }
 
+    /// Bind a GlassChat UUID to an MC peer; register immediately if the session is already up.
+    private func notePeerUUID(_ uuid: UUID, for peerID: MCPeerID) {
+        discoveredUUIDByPeer[peerID] = uuid
+        if mcPeerToUUID[peerID] != nil || session.connectedPeers.contains(peerID) || awaitingUUID.contains(peerID) {
+            register(uuid: uuid, mcPeerID: peerID)
+        }
+    }
+
     private func handleDisconnect(from peerID: MCPeerID) {
+        awaitingUUID.remove(peerID)
         if let uuid = mcPeerToUUID.removeValue(forKey: peerID) {
             uuidToMCPeer.removeValue(forKey: uuid)
             connectedLinkUUIDs.removeAll { $0 == uuid }
@@ -161,6 +175,9 @@ extension MultipeerTransport: MCSessionDelegate {
             case .connected:
                 if let uuid = discoveredUUIDByPeer[peerID] ?? mcPeerToUUID[peerID] {
                     register(uuid: uuid, mcPeerID: peerID)
+                } else {
+                    // Invitee race: .connected can beat didReceiveInvitation's MainActor hop.
+                    awaitingUUID.insert(peerID)
                 }
             case .notConnected:
                 handleDisconnect(from: peerID)
@@ -187,7 +204,15 @@ extension MultipeerTransport: MCSessionDelegate {
         fromPeer peerID: MCPeerID
     ) {
         Task { @MainActor in
-            guard let uuid = mcPeerToUUID[peerID] ?? discoveredUUIDByPeer[peerID] else { return }
+            var uuid = mcPeerToUUID[peerID] ?? discoveredUUIDByPeer[peerID]
+            // Recover from missed registration: MeshPacket always carries sourceUUID.
+            if uuid == nil, let packet = try? MeshPacket.decode(from: data) {
+                uuid = packet.sourceUUID
+            }
+            guard let uuid else { return }
+            if mcPeerToUUID[peerID] == nil {
+                register(uuid: uuid, mcPeerID: peerID)
+            }
             linkContinuation.yield(.dataReceived(data, from: uuid))
         }
     }
@@ -223,10 +248,13 @@ extension MultipeerTransport: MCNearbyServiceAdvertiserDelegate {
         invitationHandler: @escaping (Bool, MCSession?) -> Void
     ) {
         Task { @MainActor in
+            // Learn UUID before accept. If .connected already ran on MainActor,
+            // awaitingUUID + notePeerUUID registers immediately; otherwise
+            // discoveredUUIDByPeer is ready for the upcoming .connected callback.
             if let context,
                let string = String(data: context, encoding: .utf8),
                let uuid = UUID(uuidString: string) {
-                discoveredUUIDByPeer[peerID] = uuid
+                notePeerUUID(uuid, for: peerID)
             }
             invitationHandler(true, session)
         }
@@ -247,7 +275,7 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
             guard let uuidString = info?["uuid"], let remoteUUID = UUID(uuidString: uuidString) else {
                 return
             }
-            discoveredUUIDByPeer[peerID] = remoteUUID
+            notePeerUUID(remoteUUID, for: peerID)
             scheduleInvite(to: peerID, remoteUUID: remoteUUID)
         }
     }
@@ -258,7 +286,11 @@ extension MultipeerTransport: MCNearbyServiceBrowserDelegate {
     ) {
         Task { @MainActor in
             discoveredPeerNames.removeAll { $0 == peerID.displayName }
-            discoveredUUIDByPeer.removeValue(forKey: peerID)
+            // Keep UUID mapping while the session is still connected — discovery
+            // loss must not break send after a successful invite.
+            if !session.connectedPeers.contains(peerID) {
+                discoveredUUIDByPeer.removeValue(forKey: peerID)
+            }
             pendingInvites.remove(peerID)
         }
     }
