@@ -3,7 +3,7 @@ import UIKit
 
 struct SettingsView: View {
     @Environment(ChatService.self) private var chatService
-    @Environment(MultipeerTransport.self) private var transport
+    @Environment(TransportMux.self) private var transport
 
     @State private var name: String = ""
     @State private var visible = true
@@ -44,7 +44,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("GlassChat works fully offline over Bluetooth and local Wi‑Fi. No accounts, no servers, no internet.")
+                Text("GlassChat works fully offline. Nearby phones form a mesh over Bluetooth and local Wi‑Fi so messages can hop through peers. No accounts, no servers, no internet.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

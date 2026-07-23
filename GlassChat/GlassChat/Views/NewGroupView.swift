@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NewGroupView: View {
     @Environment(ChatService.self) private var chatService
-    @Environment(MultipeerTransport.self) private var transport
+    @Environment(TransportMux.self) private var transport
     var onCreated: (Chat) -> Void
 
     @State private var name = ""

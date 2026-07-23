@@ -8,13 +8,13 @@ import UIKit
 @MainActor
 final class ChatService {
     private let modelContext: ModelContext
-    private let transport: MultipeerTransport
+    private let transport: TransportMux
     private var eventTask: Task<Void, Never>?
     private var sequenceStore: [String: Int64] = [:]
     /// Chat currently on screen — incoming messages here do not bump unread.
     private(set) var activeChatID: UUID?
 
-    init(modelContext: ModelContext, transport: MultipeerTransport) {
+    init(modelContext: ModelContext, transport: TransportMux) {
         self.modelContext = modelContext
         self.transport = transport
         // Subscribe once for the app-lifetime of this service. AsyncStream is
@@ -372,7 +372,7 @@ final class ChatService {
                 message.status = .sent
             }
             try? modelContext.save()
-        } catch TransportError.noConnectedPeers {
+        } catch TransportError.noConnectedPeers, TransportError.missingPeerKey {
             message.status = .pending
             try? modelContext.save()
         } catch {

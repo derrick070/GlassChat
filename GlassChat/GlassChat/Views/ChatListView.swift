@@ -11,7 +11,7 @@ private enum AppRoute: Hashable {
 
 struct ChatListView: View {
     @Environment(ChatService.self) private var chatService
-    @Environment(MultipeerTransport.self) private var transport
+    @Environment(TransportMux.self) private var transport
     @Environment(NotificationService.self) private var notifications
     @Query(sort: \Chat.lastMessageAt, order: .reverse) private var chats: [Chat]
 

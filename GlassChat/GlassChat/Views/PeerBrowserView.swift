@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PeerBrowserView: View {
     @Environment(ChatService.self) private var chatService
-    @Environment(MultipeerTransport.self) private var transport
+    @Environment(TransportMux.self) private var transport
     var onOpenChat: (Chat) -> Void
 
     var body: some View {

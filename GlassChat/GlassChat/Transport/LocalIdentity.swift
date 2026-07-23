@@ -7,6 +7,7 @@ struct LocalIdentity {
     let peerUUID: UUID
     var displayName: String
     let mcPeerID: MCPeerID
+    let crypto: CryptoIdentity
 
     var shortID: String {
         String(peerUUID.uuidString.prefix(8)).uppercased()
@@ -46,7 +47,8 @@ struct LocalIdentity {
         let displayName = UserDefaults.standard.string(forKey: Keys.displayName)
             ?? UIDevice.current.name
         let mcPeerID = loadOrCreateMCPeerID(displayName: displayName, uuid: uuid)
-        return LocalIdentity(peerUUID: uuid, displayName: displayName, mcPeerID: mcPeerID)
+        let crypto = CryptoIdentity.loadOrCreate()
+        return LocalIdentity(peerUUID: uuid, displayName: displayName, mcPeerID: mcPeerID, crypto: crypto)
     }
 
     mutating func updateDisplayName(_ name: String) {
@@ -84,6 +86,15 @@ struct LocalIdentity {
 
 enum KeychainStore {
     static func string(forKey key: String) -> String? {
+        guard let data = data(forKey: key) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func set(_ value: String, forKey key: String) {
+        setData(Data(value.utf8), forKey: key)
+    }
+
+    static func data(forKey key: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
@@ -93,11 +104,10 @@ enum KeychainStore {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        return data
     }
 
-    static func set(_ value: String, forKey key: String) {
-        let data = Data(value.utf8)
+    static func setData(_ data: Data, forKey key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key

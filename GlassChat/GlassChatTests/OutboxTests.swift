@@ -6,12 +6,12 @@ import SwiftData
 final class OutboxTests: XCTestCase {
     func testOutboxIncludesPendingAndSentOnly() throws {
         let container = try ModelContainer(
-            for: Peer.self, Chat.self, Message.self,
+            for: Peer.self, Chat.self, Message.self, StoredPacket.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
         let identity = LocalIdentity.loadOrCreate()
-        let transport = MultipeerTransport(identity: identity)
+        let transport = TransportMux(identity: identity, modelContext: context)
         let service = ChatService(modelContext: context, transport: transport)
         let peer = ConnectedPeer(uuid: UUID(), displayName: "Riley")
         let chat = service.openOrCreateDirectChat(with: peer)

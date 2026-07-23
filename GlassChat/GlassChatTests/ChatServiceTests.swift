@@ -4,14 +4,14 @@ import SwiftData
 
 @MainActor
 final class ChatServiceTests: XCTestCase {
-    private func makeService() throws -> (ChatService, ModelContext, MultipeerTransport) {
+    private func makeService() throws -> (ChatService, ModelContext, TransportMux) {
         let container = try ModelContainer(
-            for: Peer.self, Chat.self, Message.self,
+            for: Peer.self, Chat.self, Message.self, StoredPacket.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
         let identity = LocalIdentity.loadOrCreate()
-        let transport = MultipeerTransport(identity: identity)
+        let transport = TransportMux(identity: identity, modelContext: context)
         let service = ChatService(modelContext: context, transport: transport)
         return (service, context, transport)
     }

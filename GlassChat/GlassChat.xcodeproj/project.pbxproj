@@ -32,6 +32,19 @@
 		F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 238AB9067C440029CD0E6E67 /* TransportEvent.swift */; };
 		F95101CDB313612ED0EB03B2 /* ChatServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */; };
 		FF62B2E8979C5BC8B36901E9 /* LocalIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A793029230D8795C497A4D3 /* LocalIdentity.swift */; };
+		A10000000000000000000001 /* ChatTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* ChatTransport.swift */; };
+		A10000000000000000000002 /* TransportMux.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* TransportMux.swift */; };
+		A10000000000000000000003 /* CryptoIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* CryptoIdentity.swift */; };
+		A10000000000000000000004 /* EnvelopeCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* EnvelopeCrypto.swift */; };
+		A10000000000000000000005 /* MeshPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* MeshPacket.swift */; };
+		A10000000000000000000006 /* BLEFragmenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* BLEFragmenter.swift */; };
+		A10000000000000000000007 /* StoredPacket.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* StoredPacket.swift */; };
+		A10000000000000000000008 /* MeshStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* MeshStore.swift */; };
+		A10000000000000000000009 /* MeshRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* MeshRouter.swift */; };
+		A1000000000000000000000A /* BLEConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001A /* BLEConstants.swift */; };
+		A1000000000000000000000B /* BLETransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001B /* BLETransport.swift */; };
+		A1000000000000000000000C /* EnvelopeCryptoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001C /* EnvelopeCryptoTests.swift */; };
+		A1000000000000000000000D /* MeshPacketTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000001D /* MeshPacketTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +86,19 @@
 		D3E4F5061728394A5B6C7D8E /* BackgroundSessionKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSessionKeeper.swift; sourceTree = "<group>"; };
 		E8EB9B083E67DC890858A553 /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
 		F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerTransport.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* ChatTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTransport.swift; sourceTree = "<group>"; };
+		A10000000000000000000012 /* TransportMux.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransportMux.swift; sourceTree = "<group>"; };
+		A10000000000000000000013 /* CryptoIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoIdentity.swift; sourceTree = "<group>"; };
+		A10000000000000000000014 /* EnvelopeCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeCrypto.swift; sourceTree = "<group>"; };
+		A10000000000000000000015 /* MeshPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshPacket.swift; sourceTree = "<group>"; };
+		A10000000000000000000016 /* BLEFragmenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEFragmenter.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* StoredPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredPacket.swift; sourceTree = "<group>"; };
+		A10000000000000000000018 /* MeshStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshStore.swift; sourceTree = "<group>"; };
+		A10000000000000000000019 /* MeshRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshRouter.swift; sourceTree = "<group>"; };
+		A1000000000000000000001A /* BLEConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEConstants.swift; sourceTree = "<group>"; };
+		A1000000000000000000001B /* BLETransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLETransport.swift; sourceTree = "<group>"; };
+		A1000000000000000000001C /* EnvelopeCryptoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeCryptoTests.swift; sourceTree = "<group>"; };
+		A1000000000000000000001D /* MeshPacketTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshPacketTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,6 +145,8 @@
 				509BD8D7B7E7C2CA04583A21 /* ChatServiceTests.swift */,
 				1D0DEC48F9465B7B6779D161 /* OutboxTests.swift */,
 				AB09F722F8A0476ACA95938E /* WireFrameTests.swift */,
+				A1000000000000000000001C /* EnvelopeCryptoTests.swift */,
+				A1000000000000000000001D /* MeshPacketTests.swift */,
 			);
 			path = GlassChatTests;
 			sourceTree = "<group>";
@@ -158,6 +186,8 @@
 				02CB4EE95E3D5BEF557EE920 /* Models */,
 				2BA32386C2ADAD13E88BA203 /* Services */,
 				D1471958BC7A688936997D72 /* Transport */,
+				A20000000000000000000001 /* Mesh */,
+				A20000000000000000000002 /* Crypto */,
 				DBCDD2ABB93BCB8D2B4E0351 /* Views */,
 				32BB636196F91ED59D7A4919 /* Assets.xcassets */,
 				75C3AECB4888CEFB2F89E4AF /* GlassChatApp.swift */,
@@ -169,12 +199,45 @@
 		D1471958BC7A688936997D72 /* Transport */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000011 /* ChatTransport.swift */,
+				A10000000000000000000012 /* TransportMux.swift */,
 				3A793029230D8795C497A4D3 /* LocalIdentity.swift */,
 				F14BDDFC873D5165161C5D21 /* MultipeerTransport.swift */,
 				238AB9067C440029CD0E6E67 /* TransportEvent.swift */,
 				2B933A1855064DA84205346A /* WireFrame.swift */,
+				A20000000000000000000003 /* BLE */,
 			);
 			path = Transport;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000003 /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000000000000000001A /* BLEConstants.swift */,
+				A1000000000000000000001B /* BLETransport.swift */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000001 /* Mesh */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000015 /* MeshPacket.swift */,
+				A10000000000000000000016 /* BLEFragmenter.swift */,
+				A10000000000000000000017 /* StoredPacket.swift */,
+				A10000000000000000000018 /* MeshStore.swift */,
+				A10000000000000000000019 /* MeshRouter.swift */,
+			);
+			path = Mesh;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000002 /* Crypto */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000013 /* CryptoIdentity.swift */,
+				A10000000000000000000014 /* EnvelopeCrypto.swift */,
+			);
+			path = Crypto;
 			sourceTree = "<group>";
 		};
 		DBCDD2ABB93BCB8D2B4E0351 /* Views */ = {
@@ -313,6 +376,17 @@
 				E9B53418775B50F1405713A1 /* MultipeerTransport.swift in Sources */,
 				F59E7DAAFA5530DA0640FBED /* TransportEvent.swift in Sources */,
 				328A5622596878029E59A1B8 /* WireFrame.swift in Sources */,
+				A10000000000000000000001 /* ChatTransport.swift in Sources */,
+				A10000000000000000000002 /* TransportMux.swift in Sources */,
+				A10000000000000000000003 /* CryptoIdentity.swift in Sources */,
+				A10000000000000000000004 /* EnvelopeCrypto.swift in Sources */,
+				A10000000000000000000005 /* MeshPacket.swift in Sources */,
+				A10000000000000000000006 /* BLEFragmenter.swift in Sources */,
+				A10000000000000000000007 /* StoredPacket.swift in Sources */,
+				A10000000000000000000008 /* MeshStore.swift in Sources */,
+				A10000000000000000000009 /* MeshRouter.swift in Sources */,
+				A1000000000000000000000A /* BLEConstants.swift in Sources */,
+				A1000000000000000000000B /* BLETransport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

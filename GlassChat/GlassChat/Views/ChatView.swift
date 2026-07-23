@@ -3,7 +3,7 @@ import SwiftData
 
 struct ChatView: View {
     @Environment(ChatService.self) private var chatService
-    @Environment(MultipeerTransport.self) private var transport
+    @Environment(TransportMux.self) private var transport
     @Environment(\.dismiss) private var dismiss
     @Bindable var chat: Chat
     var onEditGroup: (() -> Void)?

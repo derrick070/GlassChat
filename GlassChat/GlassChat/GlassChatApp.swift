@@ -3,14 +3,14 @@ import SwiftData
 
 @main
 struct GlassChatApp: App {
-    @State private var transport: MultipeerTransport
+    @State private var transport: TransportMux
     @State private var chatService: ChatService?
     @Environment(\.scenePhase) private var scenePhase
 
     private let modelContainer: ModelContainer
 
     init() {
-        let schema = Schema([Peer.self, Chat.self, Message.self])
+        let schema = Schema([Peer.self, Chat.self, Message.self, StoredPacket.self])
         let configuration = ModelConfiguration(isStoredInMemoryOnly: false)
         do {
             modelContainer = try ModelContainer(for: schema, configurations: [configuration])
@@ -19,7 +19,8 @@ struct GlassChatApp: App {
         }
 
         let identity = LocalIdentity.loadOrCreate()
-        _transport = State(initialValue: MultipeerTransport(identity: identity))
+        let context = ModelContext(modelContainer)
+        _transport = State(initialValue: TransportMux(identity: identity, modelContext: context))
     }
 
     var body: some Scene {
@@ -39,7 +40,7 @@ struct GlassChatApp: App {
 }
 
 private struct RootView: View {
-    let transport: MultipeerTransport
+    let transport: TransportMux
     @Binding var chatService: ChatService?
     @Environment(\.modelContext) private var modelContext
 

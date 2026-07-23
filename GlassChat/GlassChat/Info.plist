@@ -8,6 +8,8 @@
 	<false/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>GlassChat uses the local network to message nearby devices without the internet.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>GlassChat uses Bluetooth to find nearby peers and relay encrypted messages across a local mesh.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_glass-chat._tcp</string>
